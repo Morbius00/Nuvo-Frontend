@@ -1,19 +1,17 @@
 import { ReactNode } from 'react';
-import { Pressable, Text, View, StyleProp, ViewStyle } from 'react-native';
+import { Pressable, Text, View, StyleSheet, Platform, StyleProp, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { colors, fontFamily, liquidGlass, shadow } from '@/theme/tokens';
 import { usePressScale } from '@/hooks/usePressScale';
 import { LiquidGlassSurface } from './LiquidGlassSurface';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-// Glossy 3D-sphere body: cyan highlight → primary → deep sap green shadow edge.
-const SOLID_BODY_GRADIENT = [colors.lime400, colors.primary500, colors.sapGreen600] as const;
-// Specular sheen covering the upper half — the "glass" catch-light.
-const SOLID_SHEEN_GRADIENT = ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)'] as const;
-// Inner shadow pooling at the base for grounded depth.
-const SOLID_BASE_SHADOW_GRADIENT = ['rgba(6,20,10,0)', 'rgba(6,20,10,0.5)'] as const;
+// Frosted glass wash — lime fading into deep sap green, kept translucent so the blur reads through.
+const SOLID_GLASS_TINT = ['rgba(182,255,77,0.30)', 'rgba(34,227,122,0.20)', 'rgba(31,51,18,0.55)'] as const;
+const SOLID_GLASS_BORDER = 'rgba(198,255,107,0.32)';
 
 interface IconButtonProps {
   icon: ReactNode;
@@ -38,10 +36,7 @@ export function IconButton({ icon, label, onPress, size = 56, variant = 'solid',
       >
         {variant === 'solid' ? (
           <View style={[{ width: size, height: size, borderRadius: size / 2 }, shadow.glassButton]}>
-            <LinearGradient
-              colors={SOLID_BODY_GRADIENT}
-              start={{ x: 0.18, y: 0.1 }}
-              end={{ x: 0.85, y: 0.95 }}
+            <View
               style={{
                 width: size,
                 height: size,
@@ -50,31 +45,23 @@ export function IconButton({ icon, label, onPress, size = 56, variant = 'solid',
                 justifyContent: 'center',
                 overflow: 'hidden',
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.26)',
+                borderColor: SOLID_GLASS_BORDER,
               }}
             >
-              {/* base shadow — pools depth at the bottom of the sphere */}
-              <LinearGradient
-                colors={SOLID_BASE_SHADOW_GRADIENT}
-                pointerEvents="none"
-                style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: size * 0.55 }}
+              <BlurView
+                intensity={liquidGlass.blurButton}
+                tint="dark"
+                experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+                style={StyleSheet.absoluteFill}
               />
-              {/* specular sheen — the glass catch-light across the top */}
               <LinearGradient
-                colors={SOLID_SHEEN_GRADIENT}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: size * 0.08,
-                  right: size * 0.08,
-                  height: size * 0.5,
-                  borderTopLeftRadius: size / 2,
-                  borderTopRightRadius: size / 2,
-                }}
+                colors={SOLID_GLASS_TINT}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
               />
               {icon}
-            </LinearGradient>
+            </View>
           </View>
         ) : (
           <LiquidGlassSurface

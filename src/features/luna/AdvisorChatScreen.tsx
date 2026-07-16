@@ -286,7 +286,7 @@ export function AdvisorChatScreen() {
                 />
               </View>
               <IconButton
-                icon={<Send size={19} color={colors.inkOnPrimary} />}
+                icon={<Send size={19} color={colors.ink} />}
                 size={50}
                 onPress={() => sendMessage(draft)}
                 style={{ opacity: draft.trim() ? 1 : 0.55 }}

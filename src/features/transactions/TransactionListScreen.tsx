@@ -149,7 +149,7 @@ export function TransactionListScreen() {
       >
         <IconButton
           size={58}
-          icon={<Plus size={26} color={colors.inkOnPrimary} />}
+          icon={<Plus size={26} color={colors.ink} />}
           onPress={() => navigation.navigate('AddTransaction', undefined)}
         />
       </Animated.View>

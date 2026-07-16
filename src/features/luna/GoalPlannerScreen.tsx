@@ -115,7 +115,7 @@ export function GoalPlannerScreen() {
           </View>
           <IconButton
             size={42}
-            icon={<Plus size={20} color={colors.inkOnPrimary} />}
+            icon={<Plus size={20} color={colors.ink} />}
             onPress={() => sheetRef.current?.present()}
           />
         </Animated.View>
