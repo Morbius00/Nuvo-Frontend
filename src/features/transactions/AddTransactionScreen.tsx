@@ -11,7 +11,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { X, Mic, Calendar } from 'lucide-react-native';
+import { X, Mic } from 'lucide-react-native';
+import { CalendarIcon } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -195,7 +196,7 @@ export function AddTransactionScreen() {
           entering={FadeInUp.delay(240).springify()}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
         >
-          <Calendar size={16} color={colors.inkMuted} />
+          <CalendarIcon size={22} color={colors.inkMuted} />
           <Text style={{ color: colors.inkSecondary, fontFamily: fontFamily.semibold, fontSize: 13.5 }}>
             Today, {formatTime(now)} · {formatDayYear(now)}
           </Text>

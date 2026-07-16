@@ -3,7 +3,7 @@ import { View, ScrollView, ScrollViewProps, StyleSheet } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/theme/tokens';
+import { bgAuroraGreen, bgAuroraLime, bgAuroraLocations, colors } from '@/theme/tokens';
 import { cn } from '@/utils/cn';
 
 interface ScreenProps {
@@ -12,22 +12,33 @@ interface ScreenProps {
   className?: string;
   edges?: Edge[];
   aurora?: boolean;
+  /** Extra blob gradient (e.g. bgAuroraCyan) layered on top of the default aurora — opt-in per screen. */
+  auroraExtra?: readonly [string, string, string];
   contentContainerClassName?: string;
   scrollProps?: Omit<ScrollViewProps, 'children'>;
 }
 
 /** Soft glowing color blobs behind every screen — the "aurora" depth cue from the reference UI. */
-function Aurora() {
+function Aurora({ extra }: { extra?: readonly [string, string, string] }) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <LinearGradient
-        colors={['rgba(34,227,122,0.28)', 'rgba(34,227,122,0)']}
-        style={[styles.blob, { top: -140, left: -100, width: 340, height: 340 }]}
+        colors={bgAuroraGreen}
+        locations={bgAuroraLocations}
+        style={[styles.blob, { top: -160, left: -120, width: 420, height: 420 }]}
       />
       <LinearGradient
-        colors={['rgba(182,255,77,0.16)', 'rgba(182,255,77,0)']}
-        style={[styles.blob, { top: 180, right: -120, width: 280, height: 280 }]}
+        colors={bgAuroraLime}
+        locations={bgAuroraLocations}
+        style={[styles.blob, { top: 160, right: -140, width: 360, height: 360 }]}
       />
+      {extra && (
+        <LinearGradient
+          colors={extra}
+          locations={bgAuroraLocations}
+          style={[styles.blob, { top: 420, left: -100, width: 340, height: 340 }]}
+        />
+      )}
     </View>
   );
 }
@@ -38,13 +49,14 @@ export function Screen({
   className,
   edges = ['top', 'left', 'right'],
   aurora = true,
+  auroraExtra,
   contentContainerClassName,
   scrollProps,
 }: ScreenProps) {
   return (
     <SafeAreaView edges={edges} className={cn('flex-1 bg-bg', className)} style={{ backgroundColor: colors.bg }}>
       <StatusBar style="light" />
-      {aurora && <Aurora />}
+      {aurora && <Aurora extra={auroraExtra} />}
       {scroll ? (
         <ScrollView
           className={contentContainerClassName}

@@ -2,15 +2,17 @@ import { View, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { ArrowLeft, Calendar, Sparkles, TrendingUp, Check, Target } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, TrendingUp, Check, Target } from 'lucide-react-native';
+import { CalendarIcon } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { IconButton } from '@/components/ui/IconButton';
 import { Badge } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RadialGauge } from '@/components/charts/RadialGauge';
-import { colors, fontFamily } from '@/theme/tokens';
+import { colors, fontFamily, liquidGlass } from '@/theme/tokens';
 import { formatCurrency, formatDayYear } from '@/utils/format';
 import { LunaStackParamList } from '@/navigation/types';
 import { useListGoalsQuery } from '@/store/api/aiApi';
@@ -107,18 +109,14 @@ export function GoalDetailScreen() {
             <Animated.View entering={FadeInUp.delay(160).springify()}>
               <GlassCard>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
-                  <View
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 12,
-                      backgroundColor: colors.glassFillStrong,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                  <LiquidGlassSurface
+                    radius={14}
+                    borderWidth={1.1}
+                    intensity={liquidGlass.blurButton}
+                    contentStyle={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <Calendar size={17} color={colors.inkSecondary} />
-                  </View>
+                    <CalendarIcon size={26} color={colors.inkSecondary} />
+                  </LiquidGlassSurface>
                   <View>
                     <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.semibold, fontSize: 11 }}>Target date</Text>
                     <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 14.5, marginTop: 2 }}>

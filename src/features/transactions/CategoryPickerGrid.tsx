@@ -1,60 +1,85 @@
 import { View, Text, Pressable } from 'react-native';
-import { colors, fontFamily, radii } from '@/theme/tokens';
+import Animated from 'react-native-reanimated';
+import { colors, fontFamily, radii, liquidGlass, shadow } from '@/theme/tokens';
 import { CATEGORIES, CategoryDef } from '@/constants/categories';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { usePressScale } from '@/hooks/usePressScale';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface CategoryPickerGridProps {
   value: string;
   onChange: (key: string) => void;
   categories?: CategoryDef[];
-  columns?: number;
+}
+
+function CategoryPill({ cat, selected, onPress }: { cat: CategoryDef; selected: boolean; onPress: () => void }) {
+  const press = usePressScale({ scaleTo: 0.95 });
+  const Icon = cat.icon;
+
+  return (
+    <AnimatedPressable
+      onPress={() => press.onPress(onPress)}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={press.style}
+    >
+      <View
+        style={{
+          borderRadius: radii.pill + 2,
+          borderWidth: selected ? 1.5 : 0,
+          borderColor: selected ? cat.color : 'transparent',
+          ...(selected ? shadow.glow(cat.color) : null),
+        }}
+      >
+        <LiquidGlassSurface
+          radius={radii.pill}
+          borderWidth={1.3}
+          intensity={liquidGlass.blurButton}
+          contentStyle={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingVertical: 7,
+            paddingHorizontal: 12,
+          }}
+        >
+          {/* Icon's own glass badge — gradient border + blur fill, same recipe as the Notification/Settings buttons */}
+          <LiquidGlassSurface
+            radius={17}
+            borderWidth={1.1}
+            intensity={liquidGlass.blurButton}
+            contentStyle={{ width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon size={21} color={cat.color} strokeWidth={2} />
+          </LiquidGlassSurface>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: selected ? colors.ink : colors.inkSecondary,
+              fontFamily: selected ? fontFamily.bold : fontFamily.semibold,
+              fontSize: 12.5,
+            }}
+          >
+            {cat.label}
+          </Text>
+        </LiquidGlassSurface>
+      </View>
+    </AnimatedPressable>
+  );
 }
 
 /**
- * Single-select grid of category icon cards — used by AddTransaction and the
+ * Single-select flow of glass-morph category pills — used by AddTransaction and the
  * category-reassignment sheet on TransactionDetail. Local to the transactions
  * feature (not shared/ui) per the task's file-ownership constraints.
  */
-export function CategoryPickerGrid({ value, onChange, categories = CATEGORIES, columns = 3 }: CategoryPickerGridProps) {
-  const widthPct = `${100 / columns - 3}%` as const;
-
+export function CategoryPickerGrid({ value, onChange, categories = CATEGORIES }: CategoryPickerGridProps) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-      {categories.map((cat) => {
-        const Icon = cat.icon;
-        const selected = value === cat.key;
-        return (
-          <Pressable
-            key={cat.key}
-            onPress={() => onChange(cat.key)}
-            style={({ pressed }) => ({
-              width: widthPct,
-              aspectRatio: 1,
-              borderRadius: radii.lg,
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              paddingHorizontal: 4,
-              backgroundColor: selected ? `${cat.color}22` : colors.glassFillStrong,
-              borderWidth: 1.5,
-              borderColor: selected ? cat.color : colors.glassBorder,
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <Icon size={22} color={selected ? cat.color : colors.inkSecondary} strokeWidth={2} />
-            <Text
-              numberOfLines={2}
-              style={{
-                color: selected ? colors.ink : colors.inkSecondary,
-                fontFamily: fontFamily.semibold,
-                fontSize: 10.5,
-                textAlign: 'center',
-              }}
-            >
-              {cat.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {categories.map((cat) => (
+        <CategoryPill key={cat.key} cat={cat} selected={value === cat.key} onPress={() => onChange(cat.key)} />
+      ))}
     </View>
   );
 }

@@ -6,6 +6,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ArrowLeft } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { IconButton } from '@/components/ui/IconButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -14,7 +15,7 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { LineTrendChart } from '@/components/charts/LineTrendChart';
 import { ScatterAnomalyChart } from '@/components/charts/ScatterAnomalyChart';
 import { TransactionRow } from '@/components/cards/TransactionRow';
-import { colors, fontFamily } from '@/theme/tokens';
+import { colors, fontFamily, liquidGlass } from '@/theme/tokens';
 import { formatCurrency, formatPercent, groupByDay } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
 import { AnalyticsStackParamList } from '@/navigation/types';
@@ -70,18 +71,14 @@ export function CategoryDrilldownScreen() {
         <Animated.View entering={FadeInDown.springify()} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <IconButton variant="glass" size={42} icon={<ArrowLeft size={19} color={colors.ink} />} onPress={() => navigation.goBack()} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            <View
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
-                backgroundColor: `${cat.color}22`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+            <LiquidGlassSurface
+              radius={15}
+              borderWidth={1.2}
+              intensity={liquidGlass.blurButton}
+              contentStyle={{ width: 46, height: 46, alignItems: 'center', justifyContent: 'center' }}
             >
-              <Icon size={19} color={cat.color} />
-            </View>
+              <Icon size={27} color={cat.color} />
+            </LiquidGlassSurface>
             <Text style={{ color: colors.ink, fontFamily: fontFamily.extrabold, fontSize: 19 }} numberOfLines={1}>
               {cat.label}
             </Text>
@@ -152,7 +149,7 @@ export function CategoryDrilldownScreen() {
           ) : groupedTransactions.length === 0 ? (
             <GlassCard>
               <EmptyState
-                icon={<Icon size={30} color={cat.color} />}
+                icon={<Icon size={36} color={cat.color} />}
                 title="No transactions yet"
                 subtitle={`Nothing tagged as ${cat.label} in this period.`}
               />

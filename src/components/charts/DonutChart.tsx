@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, withDelay, withTiming, Easing } from 'react-native-reanimated';
-import { colors, fontFamily } from '@/theme/tokens';
+import { colors, fontFamily, shadow } from '@/theme/tokens';
+import { mixHex } from '@/utils/color';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -25,7 +26,7 @@ interface SegmentProps {
   size: number;
   radius: number;
   strokeWidth: number;
-  color: string;
+  stroke: string;
   circumference: number;
   segmentLength: number;
   dashOffset: number;
@@ -44,7 +45,7 @@ function DonutSegment({
   size,
   radius,
   strokeWidth,
-  color,
+  stroke,
   circumference,
   segmentLength,
   dashOffset,
@@ -65,7 +66,7 @@ function DonutSegment({
       cx={size / 2}
       cy={size / 2}
       r={radius}
-      stroke={color}
+      stroke={stroke}
       strokeWidth={strokeWidth}
       fill="none"
       strokeLinecap="butt"
@@ -89,10 +90,13 @@ export function DonutChart({
   centerValue,
   onSegmentPress,
 }: DonutChartProps) {
+  const [uid] = useState(() => Math.random().toString(36).slice(2));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
   const gap = data.length > 1 ? circumference * 0.012 : 0;
+  const cx = size / 2;
+  const cy = size / 2;
 
   let cumulative = 0;
   const segments = data.map((d, i) => {
@@ -103,17 +107,53 @@ export function DonutChart({
     return { ...d, segmentLength, dashOffset, delay: i * 90 };
   });
 
+  const dominant = segments.reduce((a, b) => (b.value > a.value ? b : a), segments[0]);
+
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...shadow.glow(dominant?.color ?? colors.primary500),
+        shadowOpacity: 0.2,
+        shadowRadius: size * 0.12,
+      }}
+    >
       <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.glassFillStrong} strokeWidth={strokeWidth} fill="none" />
+        <Defs>
+          <RadialGradient id={`dish-${uid}`} cx={cx} cy={size * 0.42} r={size * 0.65} gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.06} />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={0} />
+          </RadialGradient>
+          <LinearGradient id={`sheen-${uid}`} x1={size * 0.15} y1={0} x2={size * 0.85} y2={size} gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.12} />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={0} />
+          </LinearGradient>
+          {segments.map((s, i) => (
+            <LinearGradient key={`grad-${i}`} id={`seg-${i}-${uid}`} x1={0} y1={0} x2={size} y2={size} gradientUnits="userSpaceOnUse">
+              <Stop offset="0%" stopColor={mixHex(s.color, 255, 0.4)} />
+              <Stop offset="55%" stopColor={s.color} />
+              <Stop offset="100%" stopColor={mixHex(s.color, 0, 0.32)} />
+            </LinearGradient>
+          ))}
+        </Defs>
+
+        {/* frosted glass dish behind the ring */}
+        <Circle cx={cx} cy={cy} r={radius - strokeWidth / 2 - 3} fill={`url(#dish-${uid})`} />
+
+        {/* track groove + glassy sheen */}
+        <Circle cx={cx} cy={cy} r={radius} stroke={colors.glassFillStrong} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx={cx} cy={cy} r={radius} stroke={`url(#sheen-${uid})`} strokeWidth={strokeWidth * 0.6} fill="none" />
+
         {segments.map((s, i) => (
           <DonutSegment
             key={`${s.label}-${i}`}
             size={size}
             radius={radius}
             strokeWidth={strokeWidth}
-            color={s.color}
+            stroke={`url(#seg-${i}-${uid})`}
             circumference={circumference}
             segmentLength={s.segmentLength}
             dashOffset={s.dashOffset}

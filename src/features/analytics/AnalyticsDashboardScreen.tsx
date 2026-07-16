@@ -3,15 +3,17 @@ import { View, Text, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { TrendingUp, TrendingDown, ChevronRight, Trophy, Waves, BarChart3 } from 'lucide-react-native';
+import { TrendingUp, TrendingDown, ChevronRight, Waves } from 'lucide-react-native';
+import { AnalyticsIcon, TrophyIcon } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { LineTrendChart } from '@/components/charts/LineTrendChart';
 import { HeatMapCalendar } from '@/components/charts/HeatMapCalendar';
-import { colors, fontFamily } from '@/theme/tokens';
+import { colors, fontFamily, liquidGlass } from '@/theme/tokens';
 import { formatCurrency, formatCompactCurrency, formatPercent } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
 import { AnalyticsStackParamList } from '@/navigation/types';
@@ -47,18 +49,14 @@ function QuickNavRow({ icon, label, subtitle, onPress }: { icon: ReactNode; labe
   return (
     <GlassCard onPress={onPress}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
-        <View
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 13,
-            backgroundColor: colors.glassFillStrong,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+        <LiquidGlassSurface
+          radius={13}
+          borderWidth={1.1}
+          intensity={liquidGlass.blurButton}
+          contentStyle={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }}
         >
           {icon}
-        </View>
+        </LiquidGlassSurface>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 14.5 }}>{label}</Text>
           <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12, marginTop: 1 }}>{subtitle}</Text>
@@ -168,18 +166,14 @@ export function AnalyticsDashboardScreen() {
                           onPress={() => navigation.navigate('CategoryDrilldown', { category: c.category })}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
                         >
-                          <View
-                            style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 10,
-                              backgroundColor: `${cat.color}22`,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
+                          <LiquidGlassSurface
+                            radius={14}
+                            borderWidth={1.1}
+                            intensity={liquidGlass.blurButton}
+                            contentStyle={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
                           >
-                            <Icon size={15} color={cat.color} />
-                          </View>
+                            <Icon size={26} color={cat.color} />
+                          </LiquidGlassSurface>
                           <Text style={{ flex: 1, color: colors.ink, fontFamily: fontFamily.semibold, fontSize: 13.5 }} numberOfLines={1}>
                             {cat.label}
                           </Text>
@@ -236,13 +230,13 @@ export function AnalyticsDashboardScreen() {
         <Animated.View entering={FadeInUp.delay(240).springify()} style={{ gap: 12 }}>
           <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 16 }}>Explore further</Text>
           <QuickNavRow
-            icon={<BarChart3 size={19} color={colors.primary400} />}
+            icon={<AnalyticsIcon size={26} color={colors.primary400} />}
             label="Monthly Report"
             subtitle="Full category breakdown & trends"
             onPress={() => navigation.navigate('MonthlyReport')}
           />
           <QuickNavRow
-            icon={<Trophy size={19} color={colors.primary400} />}
+            icon={<TrophyIcon size={26} color={colors.primary400} />}
             label="Year in Review"
             subtitle="Your money recap"
             onPress={() => navigation.navigate('YearInReview')}

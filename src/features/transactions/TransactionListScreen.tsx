@@ -3,7 +3,8 @@ import { View, Text, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { Search, Plus, Receipt } from 'lucide-react-native';
+import { Search, Plus } from 'lucide-react-native';
+import { BillsIcon } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Chip } from '@/components/ui/Chip';
@@ -102,7 +103,7 @@ export function TransactionListScreen() {
           ) : sections.length === 0 ? (
             <Animated.View entering={FadeInUp.delay(180).springify()}>
               <EmptyState
-                icon={<Receipt size={28} color={colors.inkMuted} />}
+                icon={<BillsIcon size={34} color={colors.inkMuted} />}
                 title="No transactions found"
                 subtitle={hasFilters ? 'Try adjusting your search or filters.' : 'Your transactions will show up here.'}
               />

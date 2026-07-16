@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { View, Image, ImageStyle, ViewStyle, StyleProp } from 'react-native';
+import { Image, ImageStyle, ViewStyle, StyleProp } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { getCategory } from '@/constants/categories';
 import { BRAND_ICONS } from '@/constants/brandIcons';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { liquidGlass } from '@/theme/tokens';
 
 /** Merchants without a bundled vector mark fall back to a favicon fetched by domain.
  * Matched by substring, so display names like "Spotify Premium" or "Cult.fit ELITE"
@@ -90,23 +92,17 @@ export function MerchantIcon({ merchant, category, size = 36, style }: MerchantI
   if (brandKey) {
     const brand = BRAND_ICONS[brandKey];
     return (
-      <View
-        style={[
-          {
-            width: size,
-            height: size,
-            borderRadius: radius,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: `${brand.hex}22`,
-          },
-          style,
-        ]}
+      <LiquidGlassSurface
+        radius={radius}
+        borderWidth={Math.max(1, size * 0.03)}
+        intensity={liquidGlass.blurButton}
+        outerStyle={style}
+        contentStyle={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
       >
         <Svg width={size * 0.56} height={size * 0.56} viewBox="0 0 24 24">
           <Path d={brand.path} fill={brand.hex} />
         </Svg>
-      </View>
+      </LiquidGlassSurface>
     );
   }
 
@@ -125,20 +121,14 @@ export function MerchantIcon({ merchant, category, size = 36, style }: MerchantI
   // Tier 3 — generic category icon.
   const Icon = cat.icon;
   return (
-    <View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: radius,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: `${cat.color}22`,
-        },
-        style,
-      ]}
+    <LiquidGlassSurface
+      radius={radius}
+      borderWidth={Math.max(1, size * 0.03)}
+      intensity={liquidGlass.blurButton}
+      outerStyle={style}
+      contentStyle={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Icon size={size * 0.46} color={cat.color} strokeWidth={2} />
-    </View>
+      <Icon size={size * 0.62} color={cat.color} strokeWidth={2} />
+    </LiquidGlassSurface>
   );
 }

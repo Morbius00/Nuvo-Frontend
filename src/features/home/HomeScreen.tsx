@@ -277,7 +277,7 @@ export function HomeScreen() {
             </Pressable>
           </View>
           <GlassCard>
-            <View style={{ paddingHorizontal: 20, paddingVertical: 6 }}>
+            <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
               {txnLoading || !txnData ? (
                 <View style={{ paddingVertical: 16, gap: 14 }}>
                   {[0, 1, 2].map((i) => (

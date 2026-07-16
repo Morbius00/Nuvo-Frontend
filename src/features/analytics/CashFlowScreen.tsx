@@ -6,10 +6,11 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ArrowLeft } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { WaterfallChart, WaterfallStep } from '@/components/charts/WaterfallChart';
-import { colors, fontFamily } from '@/theme/tokens';
+import { colors, fontFamily, liquidGlass } from '@/theme/tokens';
 import { formatCurrency } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
 import { AnalyticsStackParamList } from '@/navigation/types';
@@ -92,18 +93,14 @@ export function CashFlowScreen() {
                   const Icon = cat.icon;
                   return (
                     <View key={c.category} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View
-                        style={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: 10,
-                          backgroundColor: `${cat.color}22`,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
+                      <LiquidGlassSurface
+                        radius={14}
+                        borderWidth={1.1}
+                        intensity={liquidGlass.blurButton}
+                        contentStyle={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Icon size={15} color={cat.color} />
-                      </View>
+                        <Icon size={26} color={cat.color} />
+                      </LiquidGlassSurface>
                       <Text style={{ flex: 1, color: colors.ink, fontFamily: fontFamily.semibold, fontSize: 13.5 }} numberOfLines={1}>
                         {cat.label}
                       </Text>

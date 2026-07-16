@@ -5,7 +5,7 @@
  */
 
 export const colors = {
-  bg: '#12141A',
+  bg: '#030811',
   bgRaised: '#1A1D26',
   surface: '#20242E',
   surface2: '#262B36',
@@ -20,22 +20,30 @@ export const colors = {
   primary200: '#9CFFBC',
   primary300: '#7CFF9E',
   primary400: '#4FF08A',
-  primary500: '#22E37A',
-  primary600: '#14C56A',
+  primary500: '#00C13A',
+  primary600: '#0B964E',
   primary700: '#0FAE5C',
   primary800: '#0B8A48',
-  primary900: '#076535',
+  primary900: '#026A2A',
 
   lime400: '#C6FF6B',
-  lime500: '#B6FF4D',
+  lime500: '#A0FF18',
+  lime600: '#A0E23F',
+
+  cyan400: '#22EED3',
+  cyan500: '#00A692',
+
+  sapGreen600: '#3E6B21',
+  sapGreen700: '#2E5119',
+  sapGreen800: '#1F3312',
 
   danger400: '#FF8080',
   danger500: '#FF5C5C',
   danger600: '#E23F3F',
 
   tierGreen: '#22E37A',
-  tierYellow: '#F2D24B',
-  tierOrange: '#FF9142',
+  tierYellow: '#FFAE00',
+  tierOrange: '#FF9900',
   tierRed: '#FF4D4D',
   tierHard: '#E11D48',
 
@@ -46,11 +54,15 @@ export const colors = {
 } as const;
 
 /** Balance / CTA gradient — the lime-to-emerald diagonal seen on hero cards & primary buttons. */
-export const primaryGradient = [colors.lime500, colors.primary500, colors.primary700] as const;
-export const primaryGradientSoft = [colors.primary400, colors.primary700] as const;
+export const primaryGradient = [colors.lime400, colors.primary500, colors.primary900] as const;
 export const glassHighlightGradient = ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.02)'] as const;
-export const bgAuroraGreen = ['rgba(34,227,122,0.35)', 'rgba(34,227,122,0)'] as const;
-export const bgAuroraLime = ['rgba(182,255,77,0.22)', 'rgba(182,255,77,0)'] as const;
+export const bgAuroraGreen = ['rgba(34,227,122,0.95)', 'rgba(34,227,122,0.22)', 'rgba(34,227,122,0)'] as const;
+export const bgAuroraLime = ['rgba(182,255,77,0.4)', 'rgba(182,255,77,0.16)', 'rgba(182,255,77,0)'] as const;
+export const bgAuroraCyan = ['rgba(34,211,238,0.4)', 'rgba(34,211,238,0.15)', 'rgba(34,211,238,0)'] as const;
+export const bgAuroraLocations = [0, 0.4, 1] as const;
+
+/** Lime → cyan → deep sap green sweep used on the Financial Health Score screen. */
+export const healthGradient = [colors.lime400, colors.cyan400, colors.sapGreen600] as const;
 
 /**
  * Glassmorphism — pure frosted glass:

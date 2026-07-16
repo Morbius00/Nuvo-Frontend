@@ -4,14 +4,16 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { ArrowLeft, Sparkles, PiggyBank, Trophy, PartyPopper, type LucideIcon } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, PiggyBank, PartyPopper } from 'lucide-react-native';
+import { TrophyIcon, type IconComponent } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { IconButton } from '@/components/ui/IconButton';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { RadialGauge } from '@/components/charts/RadialGauge';
 import { LineTrendChart } from '@/components/charts/LineTrendChart';
-import { colors, fontFamily, primaryGradient } from '@/theme/tokens';
+import { colors, fontFamily, primaryGradient, liquidGlass } from '@/theme/tokens';
 import { formatCurrency, formatCompactCurrency, formatPercent } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
 import { AnalyticsStackParamList } from '@/navigation/types';
@@ -22,7 +24,7 @@ type Nav = NativeStackNavigationProp<AnalyticsStackParamList>;
 interface SlideShellProps {
   width: number;
   gradient: readonly [string, string, ...string[]];
-  icon: LucideIcon;
+  icon: IconComponent;
   eyebrow: string;
   luna: string;
   children?: ReactNode;
@@ -37,18 +39,14 @@ function SlideShell({ width, gradient, icon: Icon, eyebrow, luna, children }: Sl
       style={{ width, flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}
     >
       <Animated.View entering={FadeInUp.delay(150).springify()} style={{ alignItems: 'center', gap: 14, maxWidth: 340 }}>
-        <View
-          style={{
-            width: 60,
-            height: 60,
-            borderRadius: 18,
-            backgroundColor: 'rgba(4,20,11,0.18)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+        <LiquidGlassSurface
+          radius={18}
+          borderWidth={1.3}
+          intensity={liquidGlass.blurButton}
+          contentStyle={{ width: 60, height: 60, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Icon size={28} color={colors.inkOnPrimary} />
-        </View>
+          <Icon size={34} color={colors.inkOnPrimary} />
+        </LiquidGlassSurface>
         <Text
           style={{
             color: 'rgba(4,20,11,0.7)',
@@ -166,7 +164,7 @@ export function YearInReviewScreen() {
         <SlideShell
           width={width}
           gradient={['#7CFF9E', '#0FAE5C'] as const}
-          icon={Trophy}
+          icon={TrophyIcon}
           eyebrow="Health Score Journey"
           luna={`Your financial health score is trending ${score >= 700 ? 'strong' : 'steady'}. Consistency beats intensity — small habits compounded all year.`}
         >
