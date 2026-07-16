@@ -191,17 +191,17 @@ export function HomeScreen() {
 
         <Animated.View entering={FadeInUp.delay(120).springify()} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <IconButton
-            icon={<Plus size={22} color={colors.ink} />}
+            icon={<Plus size={22} color={colors.inkOnPrimary} />}
             label="Add"
             onPress={() => crossNav.toTab('TransactionsTab', 'AddTransaction')}
           />
           <IconButton
-            icon={<ScanLine size={22} color={colors.ink} />}
+            icon={<ScanLine size={22} color={colors.inkOnPrimary} />}
             label="Scan"
             onPress={() => crossNav.toRoot('ScanReceipt')}
           />
           <IconButton
-            icon={<QrCode size={22} color={colors.ink} />}
+            icon={<QrCode size={22} color={colors.inkOnPrimary} />}
             label="UPI Import"
             onPress={() => crossNav.toTab('TransactionsTab', 'UpiImport')}
           />

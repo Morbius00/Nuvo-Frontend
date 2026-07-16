@@ -160,7 +160,7 @@ export function AddTransactionScreen() {
             <IconButton
               variant={voiceState === 'recording' ? 'solid' : 'glass'}
               size={52}
-              icon={<Mic size={20} color={colors.ink} />}
+              icon={<Mic size={20} color={voiceState === 'recording' ? colors.inkOnPrimary : colors.ink} />}
               label={voiceState === 'recording' ? 'Listening…' : 'Voice'}
               onPress={handleVoiceCapture}
             />

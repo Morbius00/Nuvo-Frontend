@@ -20,7 +20,7 @@ export const colors = {
   primary200: '#9CFFBC',
   primary300: '#7CFF9E',
   primary400: '#4FF08A',
-  primary500: '#00C13A',
+  primary500: '#6CCB00',
   primary600: '#0B964E',
   primary700: '#0FAE5C',
   primary800: '#0B8A48',
