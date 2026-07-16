@@ -1,17 +1,22 @@
 {
   "expo": {
-    "name": "Nuvo-Frontend",
-    "slug": "Nuvo-Frontend",
+    "name": "NUVO",
+    "slug": "nuvo",
+    "scheme": "nuvo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0B0E",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nuvo.app"
     },
     "android": {
+      "package": "com.nuvo.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0A0B0E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,7 +24,37 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-localization",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A0B0E",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "dark": {
+            "backgroundColor": "#0A0B0E"
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "NUVO uses your camera to scan receipts and bills for automatic expense capture."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#22E37A"
+        }
+      ],
+      "expo-font",
+      "expo-status-bar"
+    ]
   }
 }
