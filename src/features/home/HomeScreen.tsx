@@ -3,7 +3,7 @@ import { View, Text, Pressable, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useCrossNavigation } from '@/hooks/useCrossNavigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ImageBackground } from 'expo-image';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import {
   Bell,
@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { BudgetGaugeCard } from '@/components/cards/BudgetGaugeCard';
 import { StopLossTierBanner } from '@/components/cards/StopLossTierBanner';
 import { TransactionRow } from '@/components/cards/TransactionRow';
-import { colors, fontFamily, primaryGradient, tierForUtilisation, shadow } from '@/theme/tokens';
+import { colors, fontFamily, tierForUtilisation, shadow } from '@/theme/tokens';
 import { formatCurrency } from '@/utils/format';
 import { HomeStackParamList } from '@/navigation/types';
 import { useGetCurrentBudgetQuery } from '@/store/api/budgetsApi';
@@ -120,30 +120,22 @@ export function HomeScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(60).springify()}>
-          <LinearGradient
-            colors={primaryGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <ImageBackground
+            source={require('../../../assets/animatedbg.gif')}
+            contentFit="cover"
             style={{ borderRadius: 28, padding: 22, ...shadow.glow(colors.primary500), overflow: 'hidden' }}
           >
-            {/* ── Decorative background shapes ─────────────────── */}
-            {/* Large blurred circle — top-right */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: -48, right: -48, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-            {/* Medium circle — bottom-left */}
-            <View pointerEvents="none" style={{ position: 'absolute', bottom: -30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.09)' }} />
-            {/* Small accent ring — centre-right */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: '38%', right: 28, width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: 'rgba(255,255,255,0.20)', backgroundColor: 'transparent' }} />
-            {/* Tiny dot cluster */}
-            <View pointerEvents="none" style={{ position: 'absolute', bottom: 28, right: 80, width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.25)' }} />
-            <View pointerEvents="none" style={{ position: 'absolute', bottom: 44, right: 96, width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.18)' }} />
-            <View pointerEvents="none" style={{ position: 'absolute', bottom: 22, right: 100, width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-            {/* Diagonal slash line */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: 24, left: '55%', width: 80, height: 1.5, backgroundColor: 'rgba(255,255,255,0.15)', transform: [{ rotate: '-34deg' }] }} />
-            <View pointerEvents="none" style={{ position: 'absolute', top: 36, left: '58%', width: 50, height: 1, backgroundColor: 'rgba(255,255,255,0.10)', transform: [{ rotate: '-34deg' }] }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Text style={{ color: 'rgba(0,0,0,0.55)', fontFamily: fontFamily.extrabold, fontSize: 17, marginTop: 10 }}>
-                Available to spend
-              </Text>
+             <Text
+  style={{
+    color: '#FFFFFF',
+    fontFamily: fontFamily.bold,
+    fontSize: 17,
+    marginTop: 10,
+  }}
+>
+  Available to spend
+</Text>
               <Image
                 source={require('../../../assets/Nuvo-Logo.png')}
                 style={{ width: 96, height: 42, resizeMode: 'contain', marginRight: -26 }}
@@ -186,7 +178,7 @@ export function HomeScreen() {
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </ImageBackground>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(120).springify()} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

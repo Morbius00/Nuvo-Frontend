@@ -1,10 +1,26 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export interface LunaAttachment {
+  id: string;
+  kind: 'image' | 'file';
+  uri: string;
+  name?: string;
+  size?: number;
+  mimeType?: string;
+}
+
+export interface LunaVoiceNote {
+  uri: string;
+  durationMs: number;
+}
+
 export interface LunaMessage {
   id: string;
   role: 'user' | 'assistant';
   body: string;
   createdAt: string;
+  attachments?: LunaAttachment[];
+  voice?: LunaVoiceNote;
 }
 
 interface LunaState {

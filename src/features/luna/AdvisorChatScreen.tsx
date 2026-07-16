@@ -1,106 +1,34 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform, KeyboardAvoidingView, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, Platform, KeyboardAvoidingView, Image, Alert, Pressable } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  FadeOutDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
-import { Sparkles, ScrollText, Mic, Send } from 'lucide-react-native';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import * as Speech from 'expo-speech';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from 'expo-audio';
+import { ScrollText, Mic, Send, Paperclip } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { IconButton } from '@/components/ui/IconButton';
 import { Chip, Badge } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
-import { colors, fontFamily, primaryGradient, radii, shadow } from '@/theme/tokens';
+import { colors, fontFamily, shadow } from '@/theme/tokens';
 import { LunaStackParamList } from '@/navigation/types';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { addMessage, LunaMessage } from '@/store/slices/lunaSlice';
+import { addMessage, LunaAttachment, LunaMessage, LunaVoiceNote } from '@/store/slices/lunaSlice';
 import { useLunaChatMutation } from '@/store/api/aiApi';
+import { LunaSplash } from './LunaSplash';
+import { AssistantBubble, UserBubble, TypingDots, VoiceMessageBubble, AttachmentThumb } from './components/ChatBubbles';
+import { VoiceRecorderBar } from './components/VoiceRecorderBar';
+import { AttachSheet } from './components/AttachSheet';
+import { PendingAttachmentStrip } from './components/PendingAttachments';
 
 type Nav = NativeStackNavigationProp<LunaStackParamList>;
 
 const SUGGESTIONS = ['Spending this month', 'Any savings ideas?', 'Check my goals', 'My subscriptions'];
-const VOICE_TRANSCRIPT = 'How much did I spend on food this week?';
-const LISTEN_DURATION = 1200;
-
-function AssistantBubble({ children }: { children: ReactNode }) {
-  return (
-    <View
-      style={{
-        maxWidth: '82%',
-        borderRadius: radii.lg,
-        borderBottomLeftRadius: 6,
-        overflow: 'hidden',
-        borderWidth: StyleSheet.hairlineWidth * 2,
-        borderColor: colors.glassBorder,
-      }}
-    >
-      <BlurView
-        intensity={40}
-        tint="dark"
-        experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassFill }]} />
-      <View style={{ paddingHorizontal: 14, paddingVertical: 11 }}>{children}</View>
-    </View>
-  );
-}
-
-function UserBubble({ children }: { children: ReactNode }) {
-  return (
-    <LinearGradient
-      colors={primaryGradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{
-        maxWidth: '82%',
-        borderRadius: radii.lg,
-        borderBottomRightRadius: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 11,
-      }}
-    >
-      {children}
-    </LinearGradient>
-  );
-}
-
-function TypingDots() {
-  const d1 = useSharedValue(0.3);
-  const d2 = useSharedValue(0.3);
-  const d3 = useSharedValue(0.3);
-
-  useEffect(() => {
-    const pulse = () => withRepeat(withSequence(withTiming(1, { duration: 350 }), withTiming(0.3, { duration: 350 })), -1, true);
-    d1.value = pulse();
-    d2.value = withDelay(150, pulse());
-    d3.value = withDelay(300, pulse());
-  }, [d1, d2, d3]);
-
-  const s1 = useAnimatedStyle(() => ({ opacity: d1.value }));
-  const s2 = useAnimatedStyle(() => ({ opacity: d2.value }));
-  const s3 = useAnimatedStyle(() => ({ opacity: d3.value }));
-  const dot = { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary400 };
-
-  return (
-    <View style={{ flexDirection: 'row', gap: 5, paddingVertical: 2 }}>
-      <Animated.View style={[s1, dot]} />
-      <Animated.View style={[s2, dot]} />
-      <Animated.View style={[s3, dot]} />
-    </View>
-  );
-}
 
 export function AdvisorChatScreen() {
   const navigation = useNavigation<Nav>();
@@ -111,31 +39,62 @@ export function AdvisorChatScreen() {
   const [chat, { isLoading }] = useLunaChatMutation();
 
   const [draft, setDraft] = useState('');
-  const [listening, setListening] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<LunaAttachment[]>([]);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
-  const pulse = useSharedValue(1);
-  const micPulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const attachSheetRef = useRef<BottomSheetModal>(null);
 
   const inputBarBottom = Math.max(insets.bottom, 14) + 68 + 14;
+
+  // Every time this tab gains focus, replay the LUNA intro.
+  useFocusEffect(
+    useCallback(() => {
+      setShowSplash(true);
+    }, []),
+  );
 
   useEffect(() => {
     const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     return () => clearTimeout(id);
   }, [messages.length, isLoading]);
 
-  const sendMessage = async (text: string) => {
+  useEffect(() => {
+    return () => {
+      Speech.stop().catch(() => {});
+    };
+  }, []);
+
+  const sendMessage = async (
+    text: string,
+    extra?: { attachments?: LunaAttachment[]; voice?: LunaVoiceNote },
+  ) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed && !extra?.attachments?.length && !extra?.voice) return;
+
     const userMsg: LunaMessage = {
       id: `user_${Date.now()}`,
       role: 'user',
       body: trimmed,
       createdAt: new Date().toISOString(),
+      attachments: extra?.attachments,
+      voice: extra?.voice,
     };
     dispatch(addMessage(userMsg));
     setDraft('');
+    setPendingAttachments([]);
+
+    const chatMessage =
+      trimmed ||
+      (extra?.voice
+        ? 'Sent a voice message.'
+        : extra?.attachments?.length
+          ? `Shared ${extra.attachments.length > 1 ? `${extra.attachments.length} files` : extra.attachments[0].name ?? 'a file'}.`
+          : '');
+
     try {
-      const result = await chat({ message: trimmed }).unwrap();
+      const result = await chat({ message: chatMessage }).unwrap();
       dispatch(addMessage({ id: result.id, role: 'assistant', body: result.body, createdAt: result.createdAt }));
     } catch {
       dispatch(
@@ -149,15 +108,94 @@ export function AdvisorChatScreen() {
     }
   };
 
-  const onMicPress = () => {
-    if (listening) return;
-    setListening(true);
-    pulse.value = withRepeat(withSequence(withTiming(1.22, { duration: 300 }), withTiming(1, { duration: 300 })), 2, false);
-    setTimeout(() => {
-      setListening(false);
-      sendMessage(VOICE_TRANSCRIPT);
-    }, LISTEN_DURATION);
+  const handleSend = () => {
+    sendMessage(draft, { attachments: pendingAttachments.length ? pendingAttachments : undefined });
   };
+
+  const onMicPress = async () => {
+    const current = await getRecordingPermissionsAsync();
+    let granted = current.granted;
+    if (!granted) {
+      const requested = await requestRecordingPermissionsAsync();
+      granted = requested.granted;
+    }
+    if (!granted) {
+      Alert.alert('Microphone access needed', 'Allow microphone access in Settings to send LUNA a voice message.');
+      return;
+    }
+    setIsRecording(true);
+  };
+
+  const handleVoiceSend = (uri: string, durationMs: number) => {
+    setIsRecording(false);
+    sendMessage('', { voice: { uri, durationMs } });
+  };
+
+  const handleVoiceCancel = () => setIsRecording(false);
+
+  const toggleSpeak = (message: LunaMessage) => {
+    if (speakingId === message.id) {
+      Speech.stop().catch(() => {});
+      setSpeakingId(null);
+      return;
+    }
+    Speech.stop().catch(() => {});
+    setSpeakingId(message.id);
+    Speech.speak(message.body, {
+      rate: 1.0,
+      onDone: () => setSpeakingId(null),
+      onStopped: () => setSpeakingId(null),
+      onError: () => setSpeakingId(null),
+    });
+  };
+
+  const openAttachSheet = () => attachSheetRef.current?.present();
+
+  const handlePickPhoto = async () => {
+    attachSheetRef.current?.dismiss();
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photo access needed', 'Allow photo library access in Settings to attach images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 4,
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const attachments: LunaAttachment[] = result.assets.map((a, i) => ({
+      id: `img_${Date.now()}_${i}`,
+      kind: 'image',
+      uri: a.uri,
+      name: a.fileName ?? undefined,
+      size: a.fileSize,
+      mimeType: a.mimeType,
+    }));
+    setPendingAttachments((prev) => [...prev, ...attachments]);
+  };
+
+  const handlePickDocument = async () => {
+    attachSheetRef.current?.dismiss();
+    const result = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true });
+    if (result.canceled || !result.assets?.length) return;
+    const attachments: LunaAttachment[] = result.assets.map((a, i) => ({
+      id: `doc_${Date.now()}_${i}`,
+      kind: 'file',
+      uri: a.uri,
+      name: a.name,
+      size: a.size,
+      mimeType: a.mimeType,
+    }));
+    setPendingAttachments((prev) => [...prev, ...attachments]);
+  };
+
+  const removePendingAttachment = (id: string) => {
+    setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const canSend = draft.trim().length > 0 || pendingAttachments.length > 0;
 
   return (
     <Screen edges={['top', 'left', 'right']}>
@@ -166,10 +204,25 @@ export function AdvisorChatScreen() {
           entering={FadeInDown.springify()}
           style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 4, gap: 12 }}
         >
-          <Image
-            source={require('../../../assets/luna-profile-pic.png')}
-            style={{ width: 46, height: 46, borderRadius: 16, ...shadow.glow(colors.primary500) }}
-          />
+          <View>
+            <Image
+              source={require('../../../assets/luna-profile-pic.png')}
+              style={{ width: 46, height: 46, borderRadius: 16, ...shadow.glow(colors.primary500) }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                bottom: -2,
+                right: -2,
+                width: 13,
+                height: 13,
+                borderRadius: 7,
+                backgroundColor: colors.primary400,
+                borderWidth: 2,
+                borderColor: colors.bg,
+              }}
+            />
+          </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ color: colors.ink, fontFamily: fontFamily.extrabold, fontSize: 19 }}>LUNA</Text>
@@ -218,12 +271,24 @@ export function AdvisorChatScreen() {
               >
                 {m.role === 'user' ? (
                   <UserBubble>
-                    <Text style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.semibold, fontSize: 14.5, lineHeight: 20 }}>
-                      {m.body}
-                    </Text>
+                    {m.attachments?.length ? (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {m.attachments.map((a) => (
+                          <AttachmentThumb key={a.id} attachment={a} tint="dark" />
+                        ))}
+                      </View>
+                    ) : null}
+                    {m.voice ? <VoiceMessageBubble voice={m.voice} tint="dark" /> : null}
+                    {m.body ? (
+                      <Text
+                        style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.semibold, fontSize: 14.5, lineHeight: 20 }}
+                      >
+                        {m.body}
+                      </Text>
+                    ) : null}
                   </UserBubble>
                 ) : (
-                  <AssistantBubble>
+                  <AssistantBubble speakable speaking={speakingId === m.id} onToggleSpeak={() => toggleSpeak(m)}>
                     <Text style={{ color: colors.ink, fontFamily: fontFamily.medium, fontSize: 14.5, lineHeight: 20 }}>
                       {m.body}
                     </Text>
@@ -243,58 +308,54 @@ export function AdvisorChatScreen() {
             )}
           </ScrollView>
 
+          <LinearGradient
+            pointerEvents="none"
+            colors={['rgba(3,8,17,0)', colors.bg]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: inputBarBottom - 10, height: 46 }}
+          />
+
           <View style={{ position: 'absolute', left: 20, right: 20, bottom: inputBarBottom }}>
-            {listening && (
-              <Animated.View
-                entering={FadeInDown}
-                exiting={FadeOutDown}
-                style={{
-                  position: 'absolute',
-                  bottom: 66,
-                  alignSelf: 'center',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: colors.glassFillStrong,
-                  borderWidth: 1,
-                  borderColor: colors.glassBorder,
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: radii.pill,
-                }}
-              >
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary400 }} />
-                <Text style={{ color: colors.ink, fontFamily: fontFamily.semibold, fontSize: 12.5 }}>Listening…</Text>
-              </Animated.View>
+            {!isRecording && (
+              <PendingAttachmentStrip attachments={pendingAttachments} onRemove={removePendingAttachment} />
             )}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Animated.View style={micPulseStyle}>
+
+            {isRecording ? (
+              <VoiceRecorderBar onSend={handleVoiceSend} onCancel={handleVoiceCancel} />
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Input
+                    value={draft}
+                    onChangeText={setDraft}
+                    placeholder="Ask LUNA anything…"
+                    returnKeyType="send"
+                    onSubmitEditing={handleSend}
+                    leftIcon={
+                      <Pressable onPress={openAttachSheet} hitSlop={10}>
+                        <Paperclip size={19} color={colors.inkSecondary} />
+                      </Pressable>
+                    }
+                    rightIcon={
+                      <Pressable onPress={onMicPress} hitSlop={10}>
+                        <Mic size={19} color={colors.inkSecondary} />
+                      </Pressable>
+                    }
+                  />
+                </View>
                 <IconButton
-                  variant="glass"
-                  size={50}
-                  icon={<Mic size={20} color={listening ? colors.primary400 : colors.ink} />}
-                  onPress={onMicPress}
-                />
-              </Animated.View>
-              <View style={{ flex: 1 }}>
-                <Input
-                  value={draft}
-                  onChangeText={setDraft}
-                  placeholder="Ask LUNA anything…"
-                  returnKeyType="send"
-                  onSubmitEditing={() => sendMessage(draft)}
+                  icon={<Send size={19} color={colors.inkOnPrimary} />}
+                  size={46}
+                  onPress={handleSend}
+                  style={{ opacity: canSend ? 1 : 0.55 }}
                 />
               </View>
-              <IconButton
-                icon={<Send size={19} color={colors.inkOnPrimary} />}
-                size={50}
-                onPress={() => sendMessage(draft)}
-                style={{ opacity: draft.trim() ? 1 : 0.55 }}
-              />
-            </View>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {showSplash && <LunaSplash onFinish={() => setShowSplash(false)} />}
+      <AttachSheet ref={attachSheetRef} onPickPhoto={handlePickPhoto} onPickDocument={handlePickDocument} />
     </Screen>
   );
 }

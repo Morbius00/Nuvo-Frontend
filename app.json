@@ -53,8 +53,22 @@
           "color": "#22E37A"
         }
       ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "NUVO uses your microphone so you can send voice messages to LUNA."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "NUVO uses your photo library so you can attach images to your conversation with LUNA.",
+          "cameraPermission": false
+        }
+      ],
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-image"
     ]
   }
 }
