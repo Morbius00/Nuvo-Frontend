@@ -9,11 +9,12 @@ import Animated, {
   FadeIn, FadeInDown, FadeInUp, FadeOut, ZoomIn,
   useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing,
 } from 'react-native-reanimated';
-import { X, Camera as CameraIcon, AlertTriangle, ScanLine, Zap, Tag, FileText } from 'lucide-react-native';
+import { X, ScanLine, Zap, Tag, FileText } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { IconButton } from '@/components/ui/IconButton';
+import { FloatingImage } from '@/components/ui/FloatingImage';
 import { colors, fontFamily, radii } from '@/theme/tokens';
 import { RootStackParamList } from '@/navigation/types';
 import { useScanReceiptMutation } from '@/store/api/transactionsApi';
@@ -64,7 +65,7 @@ export function ScanReceiptScreen() {
       setPhase('processing');
       try {
         const result = await scanReceipt({ uri }).unwrap();
-        navigation.replace('TransactionConfirm', { transactionId: result._id });
+        navigation.replace('TransactionConfirm', { transactionId: result.transactionId, jobId: result.jobId });
       } catch {
         setPhase('error');
       }
@@ -92,11 +93,7 @@ export function ScanReceiptScreen() {
       <Screen>
         <View style={{ flex: 1, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center', gap: 22 }}>
           <Animated.View entering={ZoomIn.springify().delay(60)}>
-            <GlassCard radius={999} glow={colors.primary500} style={{ width: 108, height: 108 }}>
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <CameraIcon size={44} color={colors.primary400} />
-              </View>
-            </GlassCard>
+            <FloatingImage source={require('../../../assets/LUNA-BillScan.png')} size={200} />
           </Animated.View>
           <Animated.View entering={FadeInDown.delay(140).springify()} style={{ alignItems: 'center', gap: 8 }}>
             <Text style={{ color: colors.ink, fontFamily: fontFamily.extrabold, fontSize: 21, textAlign: 'center' }}>
@@ -163,11 +160,7 @@ export function ScanReceiptScreen() {
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 22 }}>
           <Animated.View entering={ZoomIn.springify()}>
-            <GlassCard radius={999} style={{ width: 96, height: 96 }}>
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={38} color={colors.danger500} />
-              </View>
-            </GlassCard>
+            <FloatingImage source={require('../../../assets/LUNA-Errorimage.png')} size={180} />
           </Animated.View>
           <Animated.View entering={FadeInDown.delay(100).springify()} style={{ alignItems: 'center', gap: 8 }}>
             <Text style={{ color: colors.ink, fontFamily: fontFamily.extrabold, fontSize: 19, textAlign: 'center' }}>

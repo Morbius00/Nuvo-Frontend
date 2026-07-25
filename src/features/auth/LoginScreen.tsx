@@ -15,7 +15,11 @@ import { IconButton } from '@/components/ui/IconButton';
 import { GoogleGlyph, AppleGlyph } from '@/components/ui/icons/BrandGlyphs';
 import { colors, fontFamily } from '@/theme/tokens';
 import { AuthStackParamList } from '@/navigation/types';
-import { useLoginMutation } from '@/store/api';
+import { useLoginMutation, useGoogleAuthMutation } from '@/store/api';
+import { useGoogleSignIn } from './useGoogleSignIn';
+import { useDeviceIdentity } from '@/hooks/useDeviceIdentity';
+import { useAppDispatch } from '@/store/hooks';
+import { showToast } from '@/store/slices/toastSlice';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -27,9 +31,14 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
+  const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [login, { isLoading }] = useLoginMutation();
+  const [googleAuth, { isLoading: isGoogleLoading }] = useGoogleAuthMutation();
+  const { signIn: signInWithGoogle } = useGoogleSignIn();
+  const { deviceId, deviceName } = useDeviceIdentity();
   const [formError, setFormError] = useState<string | null>(null);
+  const isMockMode = process.env.EXPO_PUBLIC_API_MODE !== 'live';
 
   const {
     control,
@@ -37,16 +46,32 @@ export function LoginScreen() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'raj.saha@gmail.com.com', password: 'demo1234' },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (values: FormValues) => {
     setFormError(null);
     try {
-      await login({ email: values.email, password: values.password, deviceId: 'sim-device', deviceName: 'iPhone Simulator' }).unwrap();
+      await login({ email: values.email, password: values.password, deviceId: deviceId ?? undefined, deviceName }).unwrap();
     } catch {
       setFormError('Could not sign in. Check your details and try again.');
     }
+  };
+
+  const onGoogleSignIn = async () => {
+    if (isGoogleLoading) return;
+    setFormError(null);
+    try {
+      // Mock mode has no real Google credentials configured — skip the OAuth prompt entirely.
+      const idToken = isMockMode ? 'mock_google_id_token' : await signInWithGoogle();
+      await googleAuth({ idToken, deviceId: deviceId ?? undefined, deviceName }).unwrap();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not sign in with Google.');
+    }
+  };
+
+  const onApplePress = () => {
+    dispatch(showToast({ variant: 'info', message: 'Apple Sign-In is coming soon.' }));
   };
 
   return (
@@ -117,7 +142,7 @@ export function LoginScreen() {
             )}
           />
 
-          <Pressable style={{ alignSelf: 'flex-end' }}>
+          <Pressable style={{ alignSelf: 'flex-end' }} onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={{ color: colors.primary400, fontFamily: fontFamily.semibold, fontSize: 13 }}>
               Forgot password?
             </Text>
@@ -139,10 +164,14 @@ export function LoginScreen() {
 
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <GlassButton label="Google" icon={<GoogleGlyph size={18} />} onPress={handleSubmit(onSubmit)} />
+              <GlassButton
+                label={isGoogleLoading ? 'Signing in…' : 'Google'}
+                icon={<GoogleGlyph size={18} />}
+                onPress={onGoogleSignIn}
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <GlassButton label="Apple" icon={<AppleGlyph size={16} />} onPress={handleSubmit(onSubmit)} />
+              <GlassButton label="Apple" icon={<AppleGlyph size={16} />} onPress={onApplePress} style={{ opacity: 0.5 }} />
             </View>
           </View>
         </Animated.View>

@@ -1,19 +1,30 @@
-import { ReactNode, useState } from 'react';
-import { View, Text, ScrollView, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { ReactNode, useEffect, useState } from 'react';
+import { View, Text, ScrollView, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions, ImageSourcePropType } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  ZoomIn,
+  LinearTransition,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { ArrowLeft, Sparkles, PiggyBank, PartyPopper } from 'lucide-react-native';
 import { TrophyIcon, type IconComponent } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { IconButton } from '@/components/ui/IconButton';
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { FloatingImage } from '@/components/ui/FloatingImage';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { RadialGauge } from '@/components/charts/RadialGauge';
 import { LineTrendChart } from '@/components/charts/LineTrendChart';
-import { colors, fontFamily, primaryGradient, liquidGlass } from '@/theme/tokens';
+import { colors, fontFamily, primaryGradient } from '@/theme/tokens';
 import { formatCurrency, formatCompactCurrency, formatPercent } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
 import { AnalyticsStackParamList } from '@/navigation/types';
@@ -24,13 +35,56 @@ type Nav = NativeStackNavigationProp<AnalyticsStackParamList>;
 interface SlideShellProps {
   width: number;
   gradient: readonly [string, string, ...string[]];
-  icon: IconComponent;
+  icon?: IconComponent;
+  image?: ImageSourcePropType;
+  wiggle?: boolean;
   eyebrow: string;
   luna: string;
   children?: ReactNode;
 }
 
-function SlideShell({ width, gradient, icon: Icon, eyebrow, luna, children }: SlideShellProps) {
+/** Continuous gentle bob + (optionally) a playful side-to-side wiggle — no BlurView, so it
+ * stays crisp against the slides' bright gradients instead of the dark glass look. */
+function SlideIcon({ icon: Icon, image, wiggle }: { icon?: IconComponent; image?: ImageSourcePropType; wiggle?: boolean }) {
+  const rotate = useSharedValue(0);
+
+  useEffect(() => {
+    if (!wiggle) return;
+    rotate.value = withRepeat(
+      withSequence(
+        withTiming(-10, { duration: 220 }),
+        withTiming(10, { duration: 220 }),
+        withTiming(-6, { duration: 180 }),
+        withTiming(0, { duration: 180 }),
+      ),
+      -1,
+      false,
+    );
+  }, [wiggle, rotate]);
+
+  const wiggleStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
+
+  if (image) return <FloatingImage source={image} size={150} />;
+
+  return (
+    <Animated.View style={wiggle ? wiggleStyle : undefined}>
+      <View
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 22,
+          backgroundColor: 'rgba(255,255,255,0.28)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {Icon && <Icon size={32} color={colors.inkOnPrimary} />}
+      </View>
+    </Animated.View>
+  );
+}
+
+function SlideShell({ width, gradient, icon, image, wiggle, eyebrow, luna, children }: SlideShellProps) {
   return (
     <LinearGradient
       colors={gradient}
@@ -38,41 +92,62 @@ function SlideShell({ width, gradient, icon: Icon, eyebrow, luna, children }: Sl
       end={{ x: 1, y: 1 }}
       style={{ width, flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}
     >
-      <Animated.View entering={FadeInUp.delay(150).springify()} style={{ alignItems: 'center', gap: 14, maxWidth: 340 }}>
-        <LiquidGlassSurface
-          radius={18}
-          borderWidth={1.3}
-          intensity={liquidGlass.blurButton}
-          contentStyle={{ width: 60, height: 60, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Icon size={34} color={colors.inkOnPrimary} />
-        </LiquidGlassSurface>
-        <Text
-          style={{
-            color: 'rgba(4,20,11,0.7)',
-            fontFamily: fontFamily.bold,
-            fontSize: 12.5,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-          }}
-        >
-          {eyebrow}
-        </Text>
-        {children}
-        <View style={{ backgroundColor: 'rgba(4,20,11,0.14)', borderRadius: 18, padding: 16, marginTop: 6 }}>
-          <Text style={{ color: 'rgba(4,20,11,0.85)', fontFamily: fontFamily.medium, fontSize: 13.5, lineHeight: 20, textAlign: 'center' }}>
-            {luna}
+      <View style={{ alignItems: 'center', gap: 14, maxWidth: 340 }}>
+        <Animated.View entering={ZoomIn.springify().delay(60)}>
+          <SlideIcon icon={icon} image={image} wiggle={wiggle} />
+        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(160).springify()}>
+          <Text
+            style={{
+              color: 'rgba(4,20,11,0.7)',
+              fontFamily: fontFamily.bold,
+              fontSize: 12.5,
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+            }}
+          >
+            {eyebrow}
           </Text>
-        </View>
-      </Animated.View>
+        </Animated.View>
+        <Animated.View entering={FadeInUp.delay(240).springify()} style={{ alignItems: 'center', gap: 8 }}>
+          {children}
+        </Animated.View>
+        <Animated.View entering={FadeInUp.delay(360).springify()}>
+          <View style={{ backgroundColor: 'rgba(4,20,11,0.14)', borderRadius: 18, padding: 16, marginTop: 6 }}>
+            <Text style={{ color: 'rgba(4,20,11,0.85)', fontFamily: fontFamily.medium, fontSize: 13.5, lineHeight: 20, textAlign: 'center' }}>
+              {luna}
+            </Text>
+          </View>
+        </Animated.View>
+      </View>
     </LinearGradient>
   );
 }
 
-function SlideTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+function SlideTitle({
+  title,
+  animatedValue,
+  formatter,
+  subtitle,
+}: {
+  title?: string;
+  animatedValue?: number;
+  formatter?: (n: number) => string;
+  subtitle?: string;
+}) {
   return (
     <>
-      <Text style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.extrabold, fontSize: 32, textAlign: 'center' }}>{title}</Text>
+      {animatedValue !== undefined && formatter ? (
+        <AnimatedNumber
+          value={animatedValue}
+          formatter={formatter}
+          style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.extrabold, fontSize: 32, textAlign: 'center' }}
+        />
+      ) : (
+        <Text style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.extrabold, fontSize: 32, textAlign: 'center' }}>
+          {title}
+        </Text>
+      )}
       {!!subtitle && <Text style={{ color: 'rgba(4,20,11,0.75)', fontFamily: fontFamily.bold, fontSize: 15 }}>{subtitle}</Text>}
     </>
   );
@@ -127,11 +202,11 @@ export function YearInReviewScreen() {
         <SlideShell
           width={width}
           gradient={primaryGradient}
-          icon={Sparkles}
+          image={require('../../../assets/LUNA-Analytics.png')}
           eyebrow="Your Year Recap"
           luna={`Hey, it's LUNA. You moved ${formatCompactCurrency(annualExpense)} through your accounts this year — that's a lot of swipes, taps, and UPI pings. Let's look back at the highlights.`}
         >
-          <SlideTitle title={formatCurrency(annualExpense)} subtitle="Total spent this year (estimated)" />
+          <SlideTitle animatedValue={annualExpense} formatter={(n) => formatCurrency(n)} subtitle="Total spent this year (estimated)" />
         </SlideShell>
 
         <SlideShell
@@ -145,10 +220,14 @@ export function YearInReviewScreen() {
               : `You kept spending nicely spread out this year — no single category dominated your budget.`
           }
         >
-          <SlideTitle
-            title={topCategoryDef?.label ?? 'Balanced Spending'}
-            subtitle={topCategory ? `${formatCurrency(topCategory.amount * 12)} estimated this year` : undefined}
-          />
+          <SlideTitle title={topCategoryDef?.label ?? 'Balanced Spending'} />
+          {topCategory && (
+            <AnimatedNumber
+              value={topCategory.amount * 12}
+              formatter={(n) => `${formatCurrency(n)} estimated this year`}
+              style={{ color: 'rgba(4,20,11,0.75)', fontFamily: fontFamily.bold, fontSize: 15 }}
+            />
+          )}
         </SlideShell>
 
         <SlideShell
@@ -158,7 +237,7 @@ export function YearInReviewScreen() {
           eyebrow="Income & Savings"
           luna={`On ${formatCompactCurrency(annualIncome)} of income this year, you tucked away ${formatCompactCurrency(annualSavings)}. Keep this up and future-you will send a thank-you note.`}
         >
-          <SlideTitle title={formatCurrency(annualSavings)} subtitle={`Saved at a ${formatPercent(savingsRate)} rate`} />
+          <SlideTitle animatedValue={annualSavings} formatter={(n) => formatCurrency(n)} subtitle={`Saved at a ${formatPercent(savingsRate)} rate`} />
         </SlideShell>
 
         <SlideShell
@@ -169,7 +248,11 @@ export function YearInReviewScreen() {
           luna={`Your financial health score is trending ${score >= 700 ? 'strong' : 'steady'}. Consistency beats intensity — small habits compounded all year.`}
         >
           <RadialGauge progress={(score / 1000) * 100} size={150} strokeWidth={13} color={colors.inkOnPrimary} trackColor="rgba(4,20,11,0.18)">
-            <Text style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.extrabold, fontSize: 32 }}>{score}</Text>
+            <AnimatedNumber
+              value={score}
+              formatter={(n) => Math.round(n).toString()}
+              style={{ color: colors.inkOnPrimary, fontFamily: fontFamily.extrabold, fontSize: 32 }}
+            />
             <Text style={{ color: 'rgba(4,20,11,0.6)', fontFamily: fontFamily.semibold, fontSize: 11 }}>out of 1000</Text>
           </RadialGauge>
           {scoreHistoryPoints.length > 1 && (
@@ -183,6 +266,7 @@ export function YearInReviewScreen() {
           width={width}
           gradient={['#B6FF4D', '#14C56A'] as const}
           icon={PartyPopper}
+          wiggle
           eyebrow="See You Next Year"
           luna="Thanks for letting me tag along on your money journey this year. Here's to smarter spending, bigger savings, and fewer surprise charges ahead."
         >
@@ -193,8 +277,9 @@ export function YearInReviewScreen() {
 
       <View style={{ position: 'absolute', bottom: 28, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
         {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
-          <View
+          <Animated.View
             key={i}
+            layout={LinearTransition.springify().damping(16)}
             style={{
               width: i === page ? 20 : 6,
               height: 6,

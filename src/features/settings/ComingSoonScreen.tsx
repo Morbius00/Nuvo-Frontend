@@ -3,11 +3,11 @@ import { View, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
-import { ArrowLeft, Sparkles, BellRing, Check } from 'lucide-react-native';
+import { ArrowLeft, BellRing, Check } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { GlassButton } from '@/components/ui/GlassButton';
 import { IconButton } from '@/components/ui/IconButton';
+import { FloatingImage } from '@/components/ui/FloatingImage';
 import { colors, fontFamily } from '@/theme/tokens';
 import { RootStackParamList } from '@/navigation/types';
 
@@ -27,11 +27,7 @@ export function ComingSoonScreen() {
 
       <View style={{ flex: 1, paddingHorizontal: 32, alignItems: 'center', justifyContent: 'center', gap: 24 }}>
         <Animated.View entering={ZoomIn.springify().delay(60)}>
-          <GlassCard radius={999} glow={colors.primary500} style={{ width: 116, height: 116 }}>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={46} color={colors.primary400} />
-            </View>
-          </GlassCard>
+          <FloatingImage source={require('../../../assets/LUNA-Nothinghere.png')} size={180} />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(140).springify()} style={{ alignItems: 'center', gap: 10 }}>

@@ -9,6 +9,7 @@ export * from './ProgressBar';
 export * from './AnimatedNumber';
 export * from './Skeleton';
 export * from './EmptyState';
+export * from './FloatingImage';
 export * from './MerchantIcon';
 export * from './Input';
 export * from './GlassBottomSheet';

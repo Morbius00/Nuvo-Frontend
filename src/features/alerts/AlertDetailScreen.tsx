@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { GlassButton } from '@/components/ui/GlassButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { FloatingImage } from '@/components/ui/FloatingImage';
 import { colors, fontFamily, stopLossTiers } from '@/theme/tokens';
 import { formatCurrency, formatPercent } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
@@ -116,8 +117,6 @@ export function AlertDetailScreen() {
     return { label: tier.label, color: tier.color, ...byTier[tier.key] };
   }, [params.tier, budget, utilisation, remaining, topCategories]);
 
-  const Icon = content.Icon;
-
   const goToBudget = () => {
     crossNav.toTab('HomeTab', 'Home');
     navigation.goBack();
@@ -127,11 +126,7 @@ export function AlertDetailScreen() {
     <Screen scroll>
       <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 20 }}>
         <Animated.View entering={ZoomIn.springify().delay(40)} style={{ alignItems: 'center', marginTop: 12 }}>
-          <GlassCard radius={999} glow={content.color} style={{ width: 100, height: 100 }}>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon size={42} color={content.color} />
-            </View>
-          </GlassCard>
+          <FloatingImage source={require('../../../assets/LUNA-Analytics.png')} size={180} />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(120).springify()} style={{ alignItems: 'center', gap: 6 }}>

@@ -60,6 +60,11 @@ class MockServer {
     return { user: clone(this.user), tokens: this.issueTokens() };
   }
 
+  async loginWithGoogle(): Promise<{ user: User; tokens: AuthTokens }> {
+    this.user.oauthProvider = 'google';
+    return { user: clone(this.user), tokens: this.issueTokens() };
+  }
+
   issueTokens(): AuthTokens {
     const stamp = Math.random().toString(36).slice(2);
     return { accessToken: `mock_access_${stamp}`, refreshToken: `mock_refresh_${stamp}` };
@@ -71,6 +76,15 @@ class MockServer {
 
   async changePassword() {
     return null;
+  }
+
+  /** No real OTP to check in mock mode — any 4-digit code is accepted. */
+  async resetPassword(_body: { email: string; otp: string; newPassword: string }) {
+    return null;
+  }
+
+  async getMe(): Promise<User> {
+    return clone(this.user);
   }
 
   async updateProfile(patch: Partial<User>) {
@@ -106,9 +120,11 @@ class MockServer {
     const start = (page - 1) * limit;
     const paged = items.slice(start, start + limit);
     return {
-      transactions: clone(paged),
-      nextCursor: start + limit < items.length ? String(page + 1) : null,
+      items: clone(paged),
       total: items.length,
+      page,
+      limit,
+      totalPages: Math.ceil(items.length / limit),
     };
   }
 
@@ -118,7 +134,7 @@ class MockServer {
     return clone(txn);
   }
 
-  async createTransaction(body: Partial<Transaction>): Promise<Transaction> {
+  async createTransaction(body: Partial<Transaction>): Promise<{ transaction: Transaction }> {
     const now = new Date().toISOString();
     const txn: Transaction = {
       _id: this.nextTxnId(),
@@ -140,14 +156,14 @@ class MockServer {
       updatedAt: now,
     };
     this.transactions.unshift(txn);
-    return clone(txn);
+    return { transaction: clone(txn) };
   }
 
-  async updateTransaction(id: string, patch: Partial<Transaction>) {
+  async updateTransaction(id: string, patch: Partial<Transaction>): Promise<{ transaction: Transaction }> {
     const idx = this.transactions.findIndex((t) => t._id === id);
     if (idx === -1) throw new Error('Transaction not found');
     this.transactions[idx] = { ...this.transactions[idx], ...patch, updatedAt: new Date().toISOString() };
-    return clone(this.transactions[idx]);
+    return { transaction: clone(this.transactions[idx]) };
   }
 
   async deleteTransaction(id: string) {
@@ -155,8 +171,8 @@ class MockServer {
     return null;
   }
 
-  /** Simulates the OCR pipeline (spec §7.1/§8): resolves with a pending, pre-filled transaction. */
-  async scanReceipt(): Promise<Transaction> {
+  /** Simulates the OCR pipeline (spec §7.1/§8): creates a pending, pre-filled transaction and a matching job. */
+  async scanReceipt(): Promise<{ transactionId: string; jobId: string }> {
     const merchants = [
       { merchant: 'Cafe Coffee Day', category: 'food_dining', amount: 340, items: [{ name: 'Cappuccino', qty: 2, unitPrice: 140, totalPrice: 280 }, { name: 'Brownie', qty: 1, unitPrice: 60, totalPrice: 60 }] },
       { merchant: 'Reliance Fresh', category: 'food_dining', amount: 1120, items: [{ name: 'Groceries (12 items)', qty: 1, unitPrice: 1120, totalPrice: 1120 }] },
@@ -184,10 +200,10 @@ class MockServer {
       updatedAt: now,
     };
     this.transactions.unshift(txn);
-    return clone(txn);
+    return { transactionId: txn._id, jobId: `mock-job-${txn._id}` };
   }
 
-  async parseUpiScreenshot(): Promise<Transaction> {
+  async parseUpiScreenshot(): Promise<{ transactionId: string; jobId: string }> {
     const apps = [
       { merchant: 'Swiggy', app: 'Google Pay', amount: 428, category: 'food_dining' },
       { merchant: 'Rahul Sharma', app: 'PhonePe', amount: 1500, category: 'transfer' },
@@ -214,10 +230,15 @@ class MockServer {
       updatedAt: now,
     };
     this.transactions.unshift(txn);
-    return clone(txn);
+    return { transactionId: txn._id, jobId: `mock-job-${txn._id}` };
   }
 
-  async createVoiceTransaction(transcript: string): Promise<Transaction> {
+  /** Both scan and UPI-parse jobs resolve instantly in mock mode — one poll tick is enough. */
+  async getScanJobStatus(_jobId: string): Promise<{ state: string; result?: unknown }> {
+    return { state: 'completed' };
+  }
+
+  async createVoiceTransaction(transcript: string): Promise<{ transaction: Transaction }> {
     const amountMatch = transcript.match(/(\d+(?:[.,]\d+)?)/);
     const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '')) : 250;
     const lower = transcript.toLowerCase();
@@ -257,7 +278,7 @@ class MockServer {
       updatedAt: now,
     };
     this.transactions.unshift(txn);
-    return clone(txn);
+    return { transaction: clone(txn) };
   }
 
   // ---------- Budgets ----------
@@ -284,8 +305,8 @@ class MockServer {
     };
   }
 
-  async updateBudgetSettings(patch: { totalBudget?: number }) {
-    if (patch.totalBudget !== undefined) this.budget.totalBudget = patch.totalBudget;
+  async updateBudgetSettings(patch: { monthlyBudget?: number }) {
+    if (patch.monthlyBudget !== undefined) this.budget.totalBudget = patch.monthlyBudget;
     return this.getCurrentBudget();
   }
 
@@ -373,7 +394,7 @@ class MockServer {
   }
 
   // ---------- LUNA / AI ----------
-  async lunaChat(message: string): Promise<{ id: string; role: 'assistant'; body: string; createdAt: string }> {
+  async lunaChat(message: string, conversationId?: string): Promise<{ conversationId: string | null; reply: string }> {
     const lower = message.toLowerCase();
     let body =
       "I'm keeping an eye on your spending — you're at 84% of this month's budget. Want a category breakdown or a savings idea?";
@@ -390,7 +411,7 @@ class MockServer {
     } else if (lower.includes('anomaly') || lower.includes('indigo') || lower.includes('unusual')) {
       body = 'The ₹4,899 IndiGo charge is 3.4x your usual transport spend — it lines up with a flight booking rather than daily travel, so it’s most likely expected.';
     }
-    return { id: `msg_${Date.now()}`, role: 'assistant', body, createdAt: new Date().toISOString() };
+    return { conversationId: conversationId ?? null, reply: body };
   }
 
   async lunaInsights() {

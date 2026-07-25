@@ -2,17 +2,20 @@ import { nuvoApi } from './nuvoApi';
 import { mockServer } from '@/mocks/mockServer';
 import { AiInsight, Goal, Subscription } from '@/types';
 
-interface LunaChatResponse {
-  id: string;
-  role: 'assistant';
-  body: string;
-  createdAt: string;
+export interface LunaChatResponse {
+  conversationId: string | null;
+  reply: string;
 }
 
 export const aiApi = nuvoApi.injectEndpoints({
   endpoints: (builder) => ({
     lunaChat: builder.mutation<LunaChatResponse, { message: string; conversationId?: string }>({
-      query: (body) => ({ url: '/ai/luna/chat', method: 'POST', body, mock: () => mockServer.lunaChat(body.message) }),
+      query: (body) => ({
+        url: '/ai/luna/chat',
+        method: 'POST',
+        body,
+        mock: () => mockServer.lunaChat(body.message, body.conversationId),
+      }),
     }),
 
     getLunaInsights: builder.query<AiInsight[], void>({
@@ -37,6 +40,14 @@ export const aiApi = nuvoApi.injectEndpoints({
 
     getSubscriptionAudit: builder.query<{ subscriptions: Subscription[]; monthlyTotal: number; annualTotal: number }, void>({
       query: () => ({ url: '/ai/subscriptions', mock: () => mockServer.subscriptionAudit() }),
+      // Real backend only returns { subscriptions, annualTotal } — derive monthlyTotal the
+      // same way the backend derives annualTotal (a straight /12), rather than re-deriving
+      // it from raw per-subscription frequencies in two different places.
+      transformResponse: (raw: { subscriptions: Subscription[]; monthlyTotal?: number; annualTotal: number }) => ({
+        subscriptions: raw.subscriptions,
+        annualTotal: raw.annualTotal,
+        monthlyTotal: raw.monthlyTotal ?? Math.round(raw.annualTotal / 12),
+      }),
       providesTags: ['Subscription'],
     }),
   }),

@@ -20,8 +20,8 @@ export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        paddingVertical: 16,
-        paddingHorizontal: 4,
+        paddingVertical: 24,
+        paddingHorizontal: 16,
         opacity: pressed ? 0.7 : 1,
       })}
     >

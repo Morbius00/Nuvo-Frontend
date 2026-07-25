@@ -10,7 +10,40 @@ interface BudgetGaugeCardProps {
 }
 
 export function BudgetGaugeCard({ spent, budget, size = 148 }: BudgetGaugeCardProps) {
-  const pct = budget > 0 ? (spent / budget) * 100 : 0;
+  if (budget <= 0) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20, padding: 20 }}>
+        <View
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderWidth: 2,
+            borderColor: colors.hairline,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 12,
+          }}
+        >
+          <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.bold, fontSize: 12.5, textAlign: 'center' }}>
+            No budget set
+          </Text>
+        </View>
+        <View style={{ flex: 1, gap: 8 }}>
+          <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 14.5 }}>Set a monthly budget</Text>
+          <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 17 }}>
+            Tap this card to set one and start tracking your spend.
+          </Text>
+          <View style={{ marginTop: 2 }}>
+            <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12 }}>Spent so far</Text>
+            <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 17 }}>{formatCompactCurrency(spent)}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const pct = (spent / budget) * 100;
   const tier = tierForUtilisation(pct);
   const remaining = Math.max(0, budget - spent);
 

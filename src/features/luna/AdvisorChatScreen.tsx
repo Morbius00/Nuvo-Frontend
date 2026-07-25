@@ -95,13 +95,19 @@ export function AdvisorChatScreen() {
 
     try {
       const result = await chat({ message: chatMessage }).unwrap();
-      dispatch(addMessage({ id: result.id, role: 'assistant', body: result.body, createdAt: result.createdAt }));
-    } catch {
+      dispatch(
+        addMessage({ id: `assistant_${Date.now()}`, role: 'assistant', body: result.reply, createdAt: new Date().toISOString() }),
+      );
+    } catch (err) {
+      const status = (err as { status?: number } | undefined)?.status;
       dispatch(
         addMessage({
           id: `err_${Date.now()}`,
           role: 'assistant',
-          body: "Sorry, I couldn't reach my brain just now — try again in a moment.",
+          body:
+            status === 403
+              ? 'LUNA chat is a NUVO Premium feature — upgrade to unlock it.'
+              : "Sorry, I couldn't reach my brain just now — try again in a moment.",
           createdAt: new Date().toISOString(),
         }),
       );

@@ -46,6 +46,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   card: 'Card',
   cash: 'Cash',
   netbanking: 'Net Banking',
+  cheque: 'Cheque',
+  other: 'Other',
 };
 
 const STATUS_COLORS: Record<string, string> = {

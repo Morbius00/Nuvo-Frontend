@@ -15,6 +15,7 @@ import {
 } from '@expo-google-fonts/manrope';
 import { store, persistor } from '@/store';
 import { AppSplash } from '@/components/ui/AppSplash';
+import { ToastHost } from '@/components/ui/ToastHost';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -49,6 +50,7 @@ export function AppProviders({ children }: AppProvidersProps) {
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor} onBeforeLift={() => setPersistReady(true)}>
             <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+            <ToastHost />
           </PersistGate>
         </Provider>
       </SafeAreaProvider>

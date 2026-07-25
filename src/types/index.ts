@@ -24,10 +24,11 @@ export interface User {
   oauthProvider?: 'google' | 'apple';
   createdAt: string;
   updatedAt: string;
+  __v?: number;
 }
 
 export type TransactionType = 'expense' | 'income' | 'transfer';
-export type PaymentMethod = 'UPI' | 'card' | 'cash' | 'netbanking';
+export type PaymentMethod = 'UPI' | 'card' | 'cash' | 'netbanking' | 'cheque' | 'other';
 export type TransactionStatus = 'pending' | 'confirmed' | 'rejected';
 
 export interface OcrLineItem {
@@ -64,6 +65,7 @@ export interface Transaction {
   transactionAt: string;
   createdAt: string;
   updatedAt: string;
+  __v?: number;
 }
 
 export type BudgetPeriod = 'monthly' | 'weekly' | 'yearly';
@@ -94,6 +96,9 @@ export interface Budget {
   categoryBreakdown: CategoryBreakdown[];
   createdAt: string;
   updatedAt: string;
+  /** Only present on GET /budgets/current — computed server-side, not a stored field. */
+  utilisationPct?: number;
+  __v?: number;
 }
 
 export type GoalStatus = 'on_track' | 'behind' | 'ahead' | 'completed' | 'abandoned';
@@ -114,6 +119,7 @@ export interface Goal {
   status: GoalStatus;
   createdAt: string;
   updatedAt: string;
+  __v?: number;
 }
 
 export type InsightType =
@@ -136,6 +142,7 @@ export interface AiInsight {
   isRead: boolean;
   expiresAt?: string;
   createdAt: string;
+  __v?: number;
 }
 
 export type SubscriptionFrequency = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
@@ -153,6 +160,7 @@ export interface Subscription {
   category?: string;
   createdAt: string;
   updatedAt: string;
+  __v?: number;
 }
 
 export interface HealthScoreComponents {
@@ -169,6 +177,7 @@ export interface HealthScore {
   score: number;
   components: HealthScoreComponents;
   date: string;
+  __v?: number;
 }
 
 export type NotificationChannel = 'push' | 'email' | 'in_app' | 'sms';
@@ -186,6 +195,7 @@ export interface AppNotification {
   sentAt?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
+  __v?: number;
 }
 
 /** Standard NUVO API response envelope (spec §13 / apiResponse.ts). */
@@ -205,9 +215,10 @@ export interface AnalyticsSummary {
   income: number;
   expense: number;
   savings: number;
-  incomeDelta: number;
+  /** Backend only computes an expense-vs-prior-period delta today. */
+  incomeDelta?: number;
   expenseDelta: number;
-  savingsDelta: number;
+  savingsDelta?: number;
   periodLabel: string;
 }
 
@@ -216,8 +227,10 @@ export interface CategoryAnalytics {
   amount: number;
   count: number;
   pctOfTotal: number;
+  /** Joined client-side from GET /budgets/current — 0 if the category has no budget set. */
   budgeted: number;
-  priorPeriodDelta: number;
+  /** Not provided by the backend; unused by any screen today. */
+  priorPeriodDelta?: number;
 }
 
 export interface TrendPoint {

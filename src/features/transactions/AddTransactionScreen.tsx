@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput } from 'react-native';
+import { View, Text, TextInput, Pressable, Platform } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -21,7 +22,7 @@ import { Chip } from '@/components/ui/Chip';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { IconButton } from '@/components/ui/IconButton';
 import { colors, fontFamily } from '@/theme/tokens';
-import { formatDayYear, formatTime } from '@/utils/format';
+import { formatDayYear, formatTime, isSameDay } from '@/utils/format';
 import { useCreateTransactionMutation, useCreateVoiceTransactionMutation } from '@/store/api/transactionsApi';
 import { TransactionsStackParamList } from '@/navigation/types';
 import { PaymentMethod, TransactionType } from '@/types';
@@ -35,6 +36,8 @@ const PAYMENT_METHODS: { key: PaymentMethod; label: string }[] = [
   { key: 'card', label: 'Card' },
   { key: 'cash', label: 'Cash' },
   { key: 'netbanking', label: 'Net Banking' },
+  { key: 'cheque', label: 'Cheque' },
+  { key: 'other', label: 'Other' },
 ];
 
 export function AddTransactionScreen() {
@@ -47,6 +50,8 @@ export function AddTransactionScreen() {
   const [merchant, setMerchant] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI');
   const [voiceState, setVoiceState] = useState<'idle' | 'recording'>('idle');
+  const [transactionDate, setTransactionDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [createTransaction, { isLoading: isCreating }] = useCreateTransactionMutation();
   const [createVoiceTransaction] = useCreateVoiceTransactionMutation();
@@ -94,7 +99,7 @@ export function AddTransactionScreen() {
       category,
       merchant: merchant.trim() || undefined,
       paymentMethod,
-      transactionAt: new Date().toISOString(),
+      transactionAt: transactionDate.toISOString(),
       tags: [],
     })
       .unwrap()
@@ -102,7 +107,11 @@ export function AddTransactionScreen() {
     navigation.goBack();
   };
 
-  const now = new Date();
+  const onDateChange = (event: DateTimePickerEvent, selected?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (event.type !== 'dismissed' && selected) setTransactionDate(selected);
+  };
+
   const canSave = Boolean(parseFloat(amount) > 0);
 
   return (
@@ -192,14 +201,26 @@ export function AddTransactionScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View
-          entering={FadeInUp.delay(240).springify()}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-        >
-          <CalendarIcon size={22} color={colors.inkMuted} />
-          <Text style={{ color: colors.inkSecondary, fontFamily: fontFamily.semibold, fontSize: 13.5 }}>
-            Today, {formatTime(now)} · {formatDayYear(now)}
-          </Text>
+        <Animated.View entering={FadeInUp.delay(240).springify()}>
+          <Pressable
+            onPress={() => setShowDatePicker(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          >
+            <CalendarIcon size={22} color={colors.inkMuted} />
+            <Text style={{ color: colors.inkSecondary, fontFamily: fontFamily.semibold, fontSize: 13.5 }}>
+              {isSameDay(transactionDate, new Date()) ? 'Today' : formatDayYear(transactionDate)},{' '}
+              {formatTime(transactionDate)}
+            </Text>
+          </Pressable>
+          {showDatePicker && (
+            <DateTimePicker
+              value={transactionDate}
+              mode="datetime"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              themeVariant="dark"
+              onChange={onDateChange}
+            />
+          )}
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(280).springify()}>

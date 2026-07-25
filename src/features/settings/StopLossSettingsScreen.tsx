@@ -45,7 +45,7 @@ export function StopLossSettingsScreen() {
 
   const onSave = async () => {
     await Promise.all([
-      updateBudgetSettings({ totalBudget: Number(monthlyBudget) || 0 }).unwrap().catch(() => undefined),
+      updateBudgetSettings({ monthlyBudget: Number(monthlyBudget) || 0 }).unwrap().catch(() => undefined),
       updateStopLoss({ limit: Number(stopLossLimit) || 0, alertAt: Number(alertAt) || 75 }).unwrap().catch(() => undefined),
     ]);
     setSaved(true);

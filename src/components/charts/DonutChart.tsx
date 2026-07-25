@@ -135,7 +135,7 @@ export function DonutChart({
             <LinearGradient key={`grad-${i}`} id={`seg-${i}-${uid}`} x1={0} y1={0} x2={size} y2={size} gradientUnits="userSpaceOnUse">
               <Stop offset="0%" stopColor={mixHex(s.color, 255, 0.4)} />
               <Stop offset="55%" stopColor={s.color} />
-              <Stop offset="100%" stopColor={mixHex(s.color, 0, 0.32)} />
+              <Stop offset="100%" stopColor={mixHex(s.color, 0, 0.15)} />
             </LinearGradient>
           ))}
         </Defs>

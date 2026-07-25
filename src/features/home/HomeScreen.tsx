@@ -21,6 +21,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { IconButton } from '@/components/ui/IconButton';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { FloatingImage } from '@/components/ui/FloatingImage';
 import { BudgetGaugeCard } from '@/components/cards/BudgetGaugeCard';
 import { StopLossTierBanner } from '@/components/cards/StopLossTierBanner';
 import { TransactionRow } from '@/components/cards/TransactionRow';
@@ -31,6 +32,7 @@ import { useGetCurrentBudgetQuery } from '@/store/api/budgetsApi';
 import { useListTransactionsQuery } from '@/store/api/transactionsApi';
 import { useGetLunaInsightsQuery } from '@/store/api/aiApi';
 import { useListNotificationsQuery } from '@/store/api/notificationsApi';
+import { useGetMeQuery } from '@/store/api/authApi';
 import { useAppSelector } from '@/store/hooks';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList>;
@@ -46,6 +48,9 @@ export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const crossNav = useCrossNavigation();
   const user = useAppSelector((s) => s.auth.user);
+  // Reads from Redux for instant paint; this just refreshes it in the background
+  // (matters for isPremium, which gates LUNA chat server-side).
+  useGetMeQuery();
   const { data: budget, isLoading: budgetLoading } = useGetCurrentBudgetQuery();
   const { data: txnData, isLoading: txnLoading } = useListTransactionsQuery({ limit: 5 });
   const { data: insights } = useGetLunaInsightsQuery();
@@ -53,7 +58,11 @@ export function HomeScreen() {
 
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
   const topInsight = insights?.find((i) => !i.isRead) ?? insights?.[0];
-  const remaining = budget ? Math.max(0, budget.totalBudget - budget.totalSpent) : 0;
+  // No monthly budget set yet — fall back to actual cash left (income - spend) rather
+  // than a meaningless "₹0 available" from an unset ₹0 budget.
+  const remaining = budget
+    ? Math.max(0, (budget.totalBudget > 0 ? budget.totalBudget : budget.totalIncome) - budget.totalSpent)
+    : 0;
   const utilisation = budget && budget.totalBudget > 0 ? (budget.totalSpent / budget.totalBudget) * 100 : 0;
   const tier = tierForUtilisation(utilisation);
   const firstName = user?.name?.split(' ')[0] ?? 'there';
@@ -229,7 +238,11 @@ export function HomeScreen() {
         )}
 
         <Animated.View entering={FadeInUp.delay(200).springify()}>
-          <GlassCard onPress={() => navigation.navigate('SpendHealth')}>
+          <GlassCard
+            onPress={() =>
+              budget && budget.totalBudget > 0 ? navigation.navigate('SpendHealth') : crossNav.toRoot('StopLossSettings')
+            }
+          >
             {budgetLoading || !budget ? (
               <View style={{ padding: 20 }}>
                 <Skeleton height={110} />
@@ -276,8 +289,15 @@ export function HomeScreen() {
                     <Skeleton key={i} height={44} />
                   ))}
                 </View>
+              ) : txnData.items.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 20, gap: 10 }}>
+                  <FloatingImage source={require('../../../assets/LUNA-Trnsaction.png')} size={110} />
+                  <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.bold, fontSize: 14.5 }}>
+                    No transactions found
+                  </Text>
+                </View>
               ) : (
-                txnData.transactions.map((t, idx) => (
+                txnData.items.map((t, idx) => (
                   <View key={t._id} style={idx > 0 ? { borderTopWidth: 1, borderTopColor: colors.hairline } : undefined}>
                     <TransactionRow
                       transaction={t}

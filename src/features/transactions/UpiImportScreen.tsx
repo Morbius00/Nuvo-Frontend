@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -18,6 +19,7 @@ import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
 import { colors, fontFamily, radii } from '@/theme/tokens';
 import { useParseUpiScreenshotMutation } from '@/store/api/transactionsApi';
+import { useCrossNavigation } from '@/hooks/useCrossNavigation';
 import { TransactionsStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<TransactionsStackParamList>;
@@ -34,6 +36,7 @@ type Status = 'idle' | 'analyzing';
 
 export function UpiImportScreen() {
   const navigation = useNavigation<Nav>();
+  const crossNav = useCrossNavigation();
   const [status, setStatus] = useState<Status>('idle');
   const [phase, setPhase] = useState<'detecting' | 'extracting'>('detecting');
   const [parseUpiScreenshot] = useParseUpiScreenshotMutation();
@@ -52,12 +55,19 @@ export function UpiImportScreen() {
 
   const handleTap = async () => {
     if (status !== 'idle') return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (picked.canceled || !picked.assets?.length) return;
+
     setStatus('analyzing');
     setPhase('detecting');
     const phaseTimer = setTimeout(() => setPhase('extracting'), 600);
 
     const [result] = await Promise.all([
-      parseUpiScreenshot({ uri: 'mock://upi-screenshot.png' })
+      parseUpiScreenshot({ uri: picked.assets[0].uri })
         .unwrap()
         .catch(() => null),
       new Promise((resolve) => setTimeout(resolve, 1200)),
@@ -65,7 +75,7 @@ export function UpiImportScreen() {
 
     clearTimeout(phaseTimer);
     setStatus('idle');
-    if (result) navigation.navigate('TransactionDetail', { id: result._id });
+    if (result) crossNav.toRoot('TransactionConfirm', { transactionId: result.transactionId, jobId: result.jobId });
   };
 
   const isAnalyzing = status === 'analyzing';

@@ -9,7 +9,7 @@ export const budgetsApi = nuvoApi.injectEndpoints({
       providesTags: ['Budget'],
     }),
 
-    updateBudgetSettings: builder.mutation<Budget, { totalBudget?: number }>({
+    updateBudgetSettings: builder.mutation<Budget, { monthlyBudget?: number }>({
       query: (body) => ({ url: '/budgets/current', method: 'PATCH', body, mock: () => mockServer.updateBudgetSettings(body) }),
       invalidatesTags: ['Budget'],
     }),

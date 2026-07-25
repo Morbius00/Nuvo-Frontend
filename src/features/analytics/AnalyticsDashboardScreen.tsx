@@ -25,22 +25,34 @@ type Nav = NativeStackNavigationProp<AnalyticsStackParamList>;
 type RangeOption = 'Week' | 'Month' | 'Year';
 const RANGE_DAYS: Record<RangeOption, number> = { Week: 7, Month: 30, Year: 365 };
 
-function StatTile({ label, value, delta, deltaGood }: { label: string; value: number; delta: number; deltaGood: boolean }) {
-  const positive = delta >= 0;
+function StatTile({
+  label,
+  value,
+  delta,
+  deltaGood,
+}: {
+  label: string;
+  value: number;
+  delta?: number;
+  deltaGood: boolean;
+}) {
+  const positive = (delta ?? 0) >= 0;
   return (
     <View style={{ flex: 1, gap: 4 }}>
       <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.semibold, fontSize: 11.5 }}>{label}</Text>
       <Text style={{ color: colors.ink, fontFamily: fontFamily.extrabold, fontSize: 16.5 }}>{formatCompactCurrency(value)}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        {positive ? (
-          <TrendingUp size={11} color={deltaGood ? colors.primary400 : colors.tierOrange} />
-        ) : (
-          <TrendingDown size={11} color={deltaGood ? colors.primary400 : colors.tierOrange} />
-        )}
-        <Text style={{ color: deltaGood ? colors.primary400 : colors.tierOrange, fontFamily: fontFamily.bold, fontSize: 11 }}>
-          {formatPercent(Math.abs(delta))}
-        </Text>
-      </View>
+      {delta !== undefined && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          {positive ? (
+            <TrendingUp size={11} color={deltaGood ? colors.primary400 : colors.tierOrange} />
+          ) : (
+            <TrendingDown size={11} color={deltaGood ? colors.primary400 : colors.tierOrange} />
+          )}
+          <Text style={{ color: deltaGood ? colors.primary400 : colors.tierOrange, fontFamily: fontFamily.bold, fontSize: 11 }}>
+            {formatPercent(Math.abs(delta))}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -81,7 +93,7 @@ export function AnalyticsDashboardScreen() {
   const heatmapDays = useMemo(() => {
     const today = new Date();
     const byDay = new Map<string, number>();
-    (txnData?.transactions ?? []).forEach((t) => {
+    (txnData?.items ?? []).forEach((t) => {
       if (t.type !== 'expense') return;
       const key = new Date(t.transactionAt).toISOString().slice(0, 10);
       byDay.set(key, (byDay.get(key) ?? 0) + t.amount);
@@ -129,9 +141,9 @@ export function AnalyticsDashboardScreen() {
           <Animated.View entering={FadeInUp.delay(80).springify()}>
             <GlassCard>
               <View style={{ flexDirection: 'row', padding: 18 }}>
-                <StatTile label="Income" value={summary.income} delta={summary.incomeDelta} deltaGood={summary.incomeDelta >= 0} />
+                <StatTile label="Income" value={summary.income} delta={summary.incomeDelta} deltaGood={(summary.incomeDelta ?? 0) >= 0} />
                 <StatTile label="Expenses" value={summary.expense} delta={summary.expenseDelta} deltaGood={summary.expenseDelta <= 0} />
-                <StatTile label="Savings" value={summary.savings} delta={summary.savingsDelta} deltaGood={summary.savingsDelta >= 0} />
+                <StatTile label="Savings" value={summary.savings} delta={summary.savingsDelta} deltaGood={(summary.savingsDelta ?? 0) >= 0} />
               </View>
             </GlassCard>
           </Animated.View>

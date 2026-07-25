@@ -9,10 +9,17 @@ export interface NuvoQueryArgs {
   /** Real REST path, e.g. '/transactions' — used only in live mode. */
   url: string;
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  /** A plain object is JSON-encoded; pass a FormData instance directly for file uploads. */
   body?: unknown;
   params?: Record<string, unknown>;
   /** Executed against the in-memory mock server when EXPO_PUBLIC_API_MODE=mock. */
   mock: () => Promise<unknown>;
+}
+
+export interface NuvoQueryError {
+  status?: number;
+  message: string;
+  errors?: { field: string; message: string }[];
 }
 
 /**
@@ -21,10 +28,7 @@ export interface NuvoQueryArgs {
  * a `url`/`method` (matching Nuvo-Backend's actual routes) and a `mock` thunk,
  * so flipping this one env var is the entire "go live" step.
  */
-export const nuvoBaseQuery: BaseQueryFn<NuvoQueryArgs, unknown, { status?: number; message: string }> = async (
-  args,
-  api,
-) => {
+export const nuvoBaseQuery: BaseQueryFn<NuvoQueryArgs, unknown, NuvoQueryError> = async (args, api) => {
   if (API_MODE === 'mock') {
     await delay(280 + Math.random() * 380);
     try {
@@ -45,18 +49,20 @@ export const nuvoBaseQuery: BaseQueryFn<NuvoQueryArgs, unknown, { status?: numbe
         .join('&')
     : '';
 
+  const isFormData = typeof FormData !== 'undefined' && args.body instanceof FormData;
+
   try {
     const res = await fetch(`${API_BASE_URL}${args.url}${query}`, {
       method: args.method ?? 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: args.body ? JSON.stringify(args.body) : undefined,
+      body: isFormData ? (args.body as FormData) : args.body ? JSON.stringify(args.body) : undefined,
     });
     const json = await res.json().catch(() => null);
     if (!res.ok) {
-      return { error: { status: res.status, message: json?.message ?? res.statusText } };
+      return { error: { status: res.status, message: json?.message ?? res.statusText, errors: json?.errors } };
     }
     return { data: json?.data ?? json };
   } catch (err) {

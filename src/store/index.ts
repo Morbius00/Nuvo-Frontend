@@ -6,11 +6,14 @@ import { nuvoApi } from './api';
 import authReducer from './slices/authSlice';
 import lunaReducer from './slices/lunaSlice';
 import uiReducer from './slices/uiSlice';
+import toastReducer from './slices/toastSlice';
+import { errorToastMiddleware } from './middleware/errorToastMiddleware';
 
 const rootReducer = combineReducers({
   auth: authReducer,
   luna: lunaReducer,
   ui: uiReducer,
+  toast: toastReducer,
   [nuvoApi.reducerPath]: nuvoApi.reducer,
 });
 
@@ -26,7 +29,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(nuvoApi.middleware),
+    }).concat(nuvoApi.middleware, errorToastMiddleware),
 });
 
 setupListeners(store.dispatch);

@@ -1,9 +1,9 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { nuvoBaseQuery } from './baseQuery';
+import { baseQueryWithReauth } from './baseQueryWithReauth';
 
 export const nuvoApi = createApi({
   reducerPath: 'nuvoApi',
-  baseQuery: nuvoBaseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Transaction', 'Budget', 'Goal', 'Insight', 'Subscription', 'Notification', 'HealthScore', 'User'],
   endpoints: () => ({}),
 });

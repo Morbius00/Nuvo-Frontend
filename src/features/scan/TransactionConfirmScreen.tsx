@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { X, Check } from 'lucide-react-native';
+import { X, Check, ScanLine } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -17,7 +17,11 @@ import { colors, fontFamily } from '@/theme/tokens';
 import { formatCurrency, formatDayYear } from '@/utils/format';
 import { CATEGORIES } from '@/constants/categories';
 import { RootStackParamList } from '@/navigation/types';
-import { useGetTransactionQuery, useUpdateTransactionMutation } from '@/store/api/transactionsApi';
+import {
+  useGetTransactionQuery,
+  useUpdateTransactionMutation,
+  useGetScanJobStatusQuery,
+} from '@/store/api/transactionsApi';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'TransactionConfirm'>;
 type Rt = RouteProp<RootStackParamList, 'TransactionConfirm'>;
@@ -25,9 +29,22 @@ type Rt = RouteProp<RootStackParamList, 'TransactionConfirm'>;
 export function TransactionConfirmScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
-  const { data: transaction, isLoading } = useGetTransactionQuery(params.transactionId);
+  const [jobDone, setJobDone] = useState(!params.jobId);
+
+  const { data: jobStatus } = useGetScanJobStatusQuery(params.jobId ?? '', {
+    skip: !params.jobId || jobDone,
+    pollingInterval: 1500,
+  });
+  const { data: transaction, isLoading, refetch } = useGetTransactionQuery(params.transactionId);
   const [confirmTransaction, { isLoading: isConfirming }] = useUpdateTransactionMutation();
   const [discardTransaction, { isLoading: isDiscarding }] = useUpdateTransactionMutation();
+
+  useEffect(() => {
+    if (jobStatus && (jobStatus.state === 'completed' || jobStatus.state === 'failed')) {
+      setJobDone(true);
+      refetch();
+    }
+  }, [jobStatus, refetch]);
 
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
@@ -74,7 +91,17 @@ export function TransactionConfirmScreen() {
           <IconButton variant="glass" size={40} icon={<X size={18} color={colors.ink} />} onPress={() => navigation.goBack()} />
         </Animated.View>
 
-        {isLoading || !transaction ? (
+        {!jobDone ? (
+          <GlassCard>
+            <View style={{ padding: 32, alignItems: 'center', gap: 12 }}>
+              <ScanLine size={32} color={colors.primary400} />
+              <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 15 }}>Processing your receipt…</Text>
+              <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12.5, textAlign: 'center' }}>
+                LUNA is reading the amount, merchant and category — this usually takes a few seconds.
+              </Text>
+            </View>
+          </GlassCard>
+        ) : isLoading || !transaction ? (
           <GlassCard>
             <View style={{ padding: 20, gap: 12 }}>
               <Skeleton height={80} />

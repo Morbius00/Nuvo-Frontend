@@ -40,7 +40,7 @@ export function CategoryDrilldownScreen() {
   const categoryStats = categories?.find((c) => c.category === category);
 
   const sparklinePoints = useMemo(() => {
-    const transactions = txnData?.transactions ?? [];
+    const transactions = txnData?.items ?? [];
     const byDay = new Map<string, number>();
     transactions.forEach((t) => {
       const key = new Date(t.transactionAt).toISOString().slice(0, 10);
@@ -52,12 +52,12 @@ export function CategoryDrilldownScreen() {
   }, [txnData]);
 
   const groupedTransactions = useMemo(
-    () => groupByDay(txnData?.transactions ?? [], (t) => t.transactionAt),
+    () => groupByDay(txnData?.items ?? [], (t) => t.transactionAt),
     [txnData],
   );
 
   const scatterTransactions = useMemo(
-    () => [...(txnData?.transactions ?? [])].sort((a, b) => (a.transactionAt < b.transactionAt ? -1 : 1)),
+    () => [...(txnData?.items ?? [])].sort((a, b) => (a.transactionAt < b.transactionAt ? -1 : 1)),
     [txnData],
   );
   const anomalyCount = scatterTransactions.filter((t) => t.isAnomalous).length;
@@ -104,10 +104,10 @@ export function CategoryDrilldownScreen() {
                         {formatPercent(categoryStats.pctOfTotal)} of total spend · {categoryStats.count} txns
                       </Text>
                       <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12.5 }}>
-                        Budget {formatCurrency(categoryStats.budgeted)}
+                        {categoryStats.budgeted > 0 ? `Budget ${formatCurrency(categoryStats.budgeted)}` : 'No budget set'}
                       </Text>
                     </View>
-                    <ProgressBar progress={pct} color={over ? colors.tierRed : cat.color} />
+                    {categoryStats.budgeted > 0 && <ProgressBar progress={pct} color={over ? colors.tierRed : cat.color} />}
                   </>
                 )}
                 {sparklinePoints.length > 1 && (

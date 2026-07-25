@@ -116,15 +116,25 @@ export function MonthlyReportScreen() {
                         >
                           {formatCurrency(c.amount)}
                         </Text>
-                        <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12 }}>
-                          {' '}
-                          / {formatCurrency(c.budgeted)}
-                        </Text>
+                        {c.budgeted > 0 && (
+                          <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12 }}>
+                            {' '}
+                            / {formatCurrency(c.budgeted)}
+                          </Text>
+                        )}
                       </View>
-                      <ProgressBar progress={pct} color={over ? colors.tierRed : colors.primary500} />
-                      <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 11 }}>
-                        {formatPercent(pct)} of budget used · {c.count} transaction{c.count === 1 ? '' : 's'}
-                      </Text>
+                      {c.budgeted > 0 ? (
+                        <>
+                          <ProgressBar progress={pct} color={over ? colors.tierRed : colors.primary500} />
+                          <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 11 }}>
+                            {formatPercent(pct)} of budget used · {c.count} transaction{c.count === 1 ? '' : 's'}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 11 }}>
+                          No budget set · {c.count} transaction{c.count === 1 ? '' : 's'}
+                        </Text>
+                      )}
                     </Pressable>
                   );
                 })

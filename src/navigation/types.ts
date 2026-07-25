@@ -4,6 +4,7 @@ export type AuthStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 };
 
 export type OnboardingStackParamList = {
@@ -52,7 +53,7 @@ export type RootStackParamList = {
   OnboardingFlow: NavigatorScreenParams<OnboardingStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
   ScanReceipt: undefined;
-  TransactionConfirm: { transactionId: string };
+  TransactionConfirm: { transactionId: string; jobId?: string };
   AlertDetail: { tier: 'yellow' | 'orange' | 'red' | 'hard' | 'predictive' };
   Notifications: undefined;
   Settings: undefined;

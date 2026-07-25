@@ -1,7 +1,8 @@
+import type { RootState } from '@/store';
 import { nuvoApi } from './nuvoApi';
 import { mockServer } from '@/mocks/mockServer';
 import { User, AuthTokens } from '@/types';
-import { setCredentials, setTokens, completeOnboarding, logout as logoutAction } from '@/store/slices/authSlice';
+import { setCredentials, setTokens, updateUser, completeOnboarding, logout as logoutAction } from '@/store/slices/authSlice';
 
 interface AuthResponse {
   user: User;
@@ -25,6 +26,23 @@ export const authApi = nuvoApi.injectEndpoints({
         const { data } = await queryFulfilled;
         dispatch(setCredentials({ user: data.user, tokens: { accessToken: data.accessToken, refreshToken: data.refreshToken } }));
         // Logging in implies an existing, already-onboarded account.
+        dispatch(completeOnboarding());
+      },
+    }),
+
+    googleAuth: builder.mutation<AuthResponse, { idToken: string; deviceId?: string; deviceName?: string }>({
+      query: (body) => ({
+        url: '/auth/google',
+        method: 'POST',
+        body,
+        mock: async () => {
+          const { user, tokens } = await mockServer.loginWithGoogle();
+          return { user, ...tokens };
+        },
+      }),
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        const { data } = await queryFulfilled;
+        dispatch(setCredentials({ user: data.user, tokens: { accessToken: data.accessToken, refreshToken: data.refreshToken } }));
         dispatch(completeOnboarding());
       },
     }),
@@ -59,11 +77,18 @@ export const authApi = nuvoApi.injectEndpoints({
     }),
 
     logout: builder.mutation<null, void>({
-      query: () => ({
-        url: '/auth/logout',
-        method: 'POST',
-        mock: async () => null,
-      }),
+      // Needs the refreshToken from Redux state (the backend's /auth/logout requires it in
+      // the body to revoke it) — `query` callbacks don't get state, so this uses `queryFn`.
+      queryFn: async (_arg, api, _extraOptions, baseQuery) => {
+        const refreshToken = (api.getState() as RootState).auth.refreshToken;
+        const result = await baseQuery({
+          url: '/auth/logout',
+          method: 'POST',
+          body: refreshToken ? { refreshToken } : undefined,
+          mock: async () => null,
+        });
+        return result.error ? { error: result.error } : { data: null };
+      },
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         await queryFulfilled.catch(() => undefined);
         dispatch(logoutAction());
@@ -89,6 +114,24 @@ export const authApi = nuvoApi.injectEndpoints({
       }),
     }),
 
+    resetPassword: builder.mutation<null, { email: string; otp: string; newPassword: string }>({
+      query: (body) => ({
+        url: '/auth/reset-password',
+        method: 'POST',
+        body,
+        mock: () => mockServer.resetPassword(body),
+      }),
+    }),
+
+    getMe: builder.query<User, void>({
+      query: () => ({ url: '/users/me', mock: () => mockServer.getMe() }),
+      providesTags: ['User'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        const { data } = await queryFulfilled.catch(() => ({ data: undefined }));
+        if (data) dispatch(updateUser(data));
+      },
+    }),
+
     updateProfile: builder.mutation<User, Partial<User>>({
       query: (body) => ({
         url: '/users/me',
@@ -103,10 +146,13 @@ export const authApi = nuvoApi.injectEndpoints({
 
 export const {
   useLoginMutation,
+  useGoogleAuthMutation,
   useRegisterMutation,
   useRefreshTokenMutation,
   useLogoutMutation,
   useChangePasswordMutation,
   useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useGetMeQuery,
   useUpdateProfileMutation,
 } = authApi;
