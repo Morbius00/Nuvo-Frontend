@@ -14,42 +14,36 @@ export interface LunaVoiceNote {
   durationMs: number;
 }
 
-export interface LunaMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  body: string;
-  createdAt: string;
-  attachments?: LunaAttachment[];
-  voice?: LunaVoiceNote;
+interface LunaUiState {
+  /** null = no thread yet; the next send creates one server-side ("New chat" state). */
+  activeConversationId: string | null;
+  /** Which message is currently being read aloud — Redux (not component state) so a global
+   * stop control and the hands-free voice-mode loop can both observe/drive it. */
+  speakingMessageId: string | null;
+  voiceModeActive: boolean;
 }
 
-interface LunaState {
-  messages: LunaMessage[];
-}
-
-const initialState: LunaState = {
-  messages: [
-    {
-      id: 'welcome',
-      role: 'assistant',
-      body: "Hi, I'm LUNA — your financial intelligence. Ask me about your spending, goals, or subscriptions anytime.",
-      createdAt: new Date(0).toISOString(),
-    },
-  ],
+const initialState: LunaUiState = {
+  activeConversationId: null,
+  speakingMessageId: null,
+  voiceModeActive: false,
 };
 
 const lunaSlice = createSlice({
   name: 'luna',
   initialState,
   reducers: {
-    addMessage(state, action: PayloadAction<LunaMessage>) {
-      state.messages.push(action.payload);
+    setActiveConversation(state, action: PayloadAction<string | null>) {
+      state.activeConversationId = action.payload;
     },
-    clearHistory(state) {
-      state.messages = initialState.messages;
+    setSpeakingMessage(state, action: PayloadAction<string | null>) {
+      state.speakingMessageId = action.payload;
+    },
+    setVoiceModeActive(state, action: PayloadAction<boolean>) {
+      state.voiceModeActive = action.payload;
     },
   },
 });
 
-export const { addMessage, clearHistory } = lunaSlice.actions;
+export const { setActiveConversation, setSpeakingMessage, setVoiceModeActive } = lunaSlice.actions;
 export default lunaSlice.reducer;

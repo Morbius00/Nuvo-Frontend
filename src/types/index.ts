@@ -238,3 +238,22 @@ export interface TrendPoint {
   amount: number;
   priorPeriodAmount?: number;
 }
+
+export interface ConversationSummary {
+  _id: string;
+  title: string;
+  lastMessageAt: string;
+  messageCount: number;
+}
+
+export type ChatRole = 'user' | 'assistant';
+export type ChatInputMode = 'text' | 'voice';
+
+export interface ChatMessage {
+  _id: string;
+  conversationId: string;
+  role: ChatRole;
+  body: string;
+  inputMode: ChatInputMode;
+  createdAt: string;
+}

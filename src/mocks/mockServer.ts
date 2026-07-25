@@ -11,6 +11,8 @@ import {
   AnalyticsSummary,
   CategoryAnalytics,
   TrendPoint,
+  ConversationSummary,
+  ChatMessage,
 } from '@/types';
 import {
   demoUser,
@@ -36,7 +38,10 @@ class MockServer {
   insights: AiInsight[] = clone(insightsFixture);
   healthScoreHistory: HealthScore[] = clone(healthScoreHistory);
   notifications: AppNotification[] = clone(notificationsFixture);
+  conversations: ConversationSummary[] = [];
+  lunaMessageStore: ChatMessage[] = [];
   private txnSeq = 9000;
+  private lunaSeq = 1;
 
   private nextTxnId() {
     return `txn_${this.txnSeq++}`;
@@ -394,24 +399,179 @@ class MockServer {
   }
 
   // ---------- LUNA / AI ----------
-  async lunaChat(message: string, conversationId?: string): Promise<{ conversationId: string | null; reply: string }> {
+  private nextLunaId(prefix: string) {
+    return `${prefix}_${this.lunaSeq++}`;
+  }
+
+  private generateLunaReply(message: string): string {
     const lower = message.toLowerCase();
-    let body =
-      "I'm keeping an eye on your spending — you're at 84% of this month's budget. Want a category breakdown or a savings idea?";
     if (lower.includes('food') || lower.includes('swiggy') || lower.includes('zomato')) {
-      body = 'You’ve spent ₹8,240 on Food & Dining this month across 14 orders — about 22% of your total spend. Cutting delivery to twice a week would save roughly ₹1,840/month.';
-    } else if (lower.includes('save') || lower.includes('saving')) {
-      body = 'Your savings rate this month is ~24%. Redirecting ₹2,000 from dining and ₹1,500 from entertainment would add ₹3,500/month toward your Japan Trip goal — finishing it a month early.';
-    } else if (lower.includes('budget') || lower.includes('spend')) {
-      body = 'You’ve used ₹37,928 of your ₹45,000 budget (84%). At this pace you’ll land around ₹46,200 by month end — ₹1,200 over. Try a ₹950/day cap for the rest of the period.';
-    } else if (lower.includes('goal') || lower.includes('japan')) {
-      body = 'Japan Trip 2027 needs ₹14,286/month — you’re contributing ₹15,800, so you’re slightly ahead and on pace to finish a month early.';
-    } else if (lower.includes('subscription')) {
-      body = 'You have 6 active subscriptions totalling ₹5,164/month (₹61,968/year). Cult.fit looks underused this month — want a cancellation guide?';
-    } else if (lower.includes('anomaly') || lower.includes('indigo') || lower.includes('unusual')) {
-      body = 'The ₹4,899 IndiGo charge is 3.4x your usual transport spend — it lines up with a flight booking rather than daily travel, so it’s most likely expected.';
+      return 'You’ve spent ₹8,240 on Food & Dining this month across 14 orders — about 22% of your total spend. Cutting delivery to twice a week would save roughly ₹1,840/month.';
     }
-    return { conversationId: conversationId ?? null, reply: body };
+    if (lower.includes('save') || lower.includes('saving')) {
+      return 'Your savings rate this month is ~24%. Redirecting ₹2,000 from dining and ₹1,500 from entertainment would add ₹3,500/month toward your Japan Trip goal — finishing it a month early.';
+    }
+    if (lower.includes('budget') || lower.includes('spend')) {
+      return 'You’ve used ₹37,928 of your ₹45,000 budget (84%). At this pace you’ll land around ₹46,200 by month end — ₹1,200 over. Try a ₹950/day cap for the rest of the period.';
+    }
+    if (lower.includes('goal') || lower.includes('japan')) {
+      return 'Japan Trip 2027 needs ₹14,286/month — you’re contributing ₹15,800, so you’re slightly ahead and on pace to finish a month early.';
+    }
+    if (lower.includes('subscription')) {
+      return 'You have 6 active subscriptions totalling ₹5,164/month (₹61,968/year). Cult.fit looks underused this month — want a cancellation guide?';
+    }
+    if (lower.includes('anomaly') || lower.includes('indigo') || lower.includes('unusual')) {
+      return 'The ₹4,899 IndiGo charge is 3.4x your usual transport spend — it lines up with a flight booking rather than daily travel, so it’s most likely expected.';
+    }
+    return "I'm keeping an eye on your spending — you're at 84% of this month's budget. Want a category breakdown or a savings idea?";
+  }
+
+  private deriveLunaTitle(message: string): string {
+    const trimmed = message.trim().replace(/\s+/g, ' ');
+    return trimmed.length > 40 ? `${trimmed.slice(0, 40)}…` : trimmed || 'New chat';
+  }
+
+  private getOrCreateConversation(conversationId?: string): ConversationSummary {
+    if (conversationId) {
+      const existing = this.conversations.find((c) => c._id === conversationId);
+      if (existing) return existing;
+    }
+    const conversation: ConversationSummary = {
+      _id: this.nextLunaId('conv'),
+      title: 'New chat',
+      lastMessageAt: new Date().toISOString(),
+      messageCount: 0,
+    };
+    this.conversations.unshift(conversation);
+    return conversation;
+  }
+
+  private appendLunaTurn(conversation: ConversationSummary, userBody: string, inputMode: 'text' | 'voice') {
+    const isNew = conversation.messageCount === 0;
+    const now = new Date().toISOString();
+
+    const userMsg: ChatMessage = {
+      _id: this.nextLunaId('msg'),
+      conversationId: conversation._id,
+      role: 'user',
+      body: userBody,
+      inputMode,
+      createdAt: now,
+    };
+    this.lunaMessageStore.push(userMsg);
+
+    const reply = this.generateLunaReply(userBody);
+    const assistantMsg: ChatMessage = {
+      _id: this.nextLunaId('msg'),
+      conversationId: conversation._id,
+      role: 'assistant',
+      body: reply,
+      inputMode,
+      createdAt: new Date().toISOString(),
+    };
+    this.lunaMessageStore.push(assistantMsg);
+
+    conversation.messageCount += 2;
+    conversation.lastMessageAt = assistantMsg.createdAt;
+    if (isNew) conversation.title = this.deriveLunaTitle(userBody);
+
+    return { userMsg, assistantMsg, reply };
+  }
+
+  async lunaConversations(): Promise<ConversationSummary[]> {
+    return clone(
+      [...this.conversations].sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()),
+    );
+  }
+
+  async lunaMessages(conversationId: string): Promise<ChatMessage[]> {
+    // No re-sort by createdAt: two messages in the same turn can share a millisecond
+    // timestamp, which makes a createdAt-based sort comparator unstable for ties. The
+    // store is only ever appended to via push(), so array order already is creation order.
+    return clone(this.lunaMessageStore.filter((m) => m.conversationId === conversationId));
+  }
+
+  async lunaChat(body: { conversationId?: string; message: string }) {
+    const conversation = this.getOrCreateConversation(body.conversationId);
+    const { userMsg, assistantMsg, reply } = this.appendLunaTurn(conversation, body.message, 'text');
+    return { conversationId: conversation._id, userMessageId: userMsg._id, assistantMessageId: assistantMsg._id, reply };
+  }
+
+  async lunaVoice(body: { conversationId?: string; uri: string }) {
+    const conversation = this.getOrCreateConversation(body.conversationId);
+    const transcript = 'This is a mock transcription of your voice message.';
+    const { userMsg, assistantMsg, reply } = this.appendLunaTurn(conversation, transcript, 'voice');
+    return {
+      conversationId: conversation._id,
+      userMessageId: userMsg._id,
+      assistantMessageId: assistantMsg._id,
+      transcript,
+      reply,
+    };
+  }
+
+  async lunaRegenerate(conversationId: string) {
+    const conversation = this.conversations.find((c) => c._id === conversationId);
+    if (!conversation) throw new Error('Conversation not found');
+
+    const lastUser = [...this.lunaMessageStore].reverse().find((m) => m.conversationId === conversationId && m.role === 'user');
+    if (!lastUser) throw new Error('No message to regenerate a reply for');
+
+    const reply = this.generateLunaReply(lastUser.body);
+    const assistantMsg: ChatMessage = {
+      _id: this.nextLunaId('msg'),
+      conversationId,
+      role: 'assistant',
+      body: reply,
+      inputMode: lastUser.inputMode,
+      createdAt: new Date().toISOString(),
+    };
+    this.lunaMessageStore.push(assistantMsg);
+    conversation.messageCount += 1;
+    conversation.lastMessageAt = assistantMsg.createdAt;
+
+    return { assistantMessageId: assistantMsg._id, reply };
+  }
+
+  async lunaEditMessage(body: { conversationId: string; messageId: string; body: string }) {
+    const conversation = this.conversations.find((c) => c._id === body.conversationId);
+    if (!conversation) throw new Error('Conversation not found');
+
+    const targetIndex = this.lunaMessageStore.findIndex(
+      (m) => m._id === body.messageId && m.conversationId === body.conversationId,
+    );
+    if (targetIndex === -1) throw new Error('Message not found');
+    const target = this.lunaMessageStore[targetIndex];
+
+    target.body = body.body;
+    const before = this.lunaMessageStore.length;
+    // Index, not createdAt: two messages in the same turn can share a millisecond timestamp
+    // (created back-to-back with no delay), but push order is always true creation order.
+    this.lunaMessageStore = this.lunaMessageStore.filter(
+      (m, i) => m.conversationId !== body.conversationId || i <= targetIndex,
+    );
+    const removed = before - this.lunaMessageStore.length;
+
+    const reply = this.generateLunaReply(target.body);
+    const assistantMsg: ChatMessage = {
+      _id: this.nextLunaId('msg'),
+      conversationId: body.conversationId,
+      role: 'assistant',
+      body: reply,
+      inputMode: target.inputMode,
+      createdAt: new Date().toISOString(),
+    };
+    this.lunaMessageStore.push(assistantMsg);
+    conversation.messageCount = Math.max(0, conversation.messageCount - removed) + 1;
+    conversation.lastMessageAt = assistantMsg.createdAt;
+
+    return { assistantMessageId: assistantMsg._id, reply };
+  }
+
+  async lunaDeleteConversation(id: string): Promise<null> {
+    this.conversations = this.conversations.filter((c) => c._id !== id);
+    this.lunaMessageStore = this.lunaMessageStore.filter((m) => m.conversationId !== id);
+    return null;
   }
 
   async lunaInsights() {
