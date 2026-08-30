@@ -3,6 +3,7 @@ import { nuvoApi } from './nuvoApi';
 import { mockServer } from '@/mocks/mockServer';
 import { User, AuthTokens } from '@/types';
 import { setCredentials, setTokens, updateUser, completeOnboarding, logout as logoutAction } from '@/store/slices/authSlice';
+import { toUploadFilePart } from '@/utils/uploadFile';
 
 interface AuthResponse {
   user: User;
@@ -15,8 +16,7 @@ function toImageFormData(uri: string): FormData {
   const filename = uri.split('/').pop() || 'image.jpg';
   const ext = filename.split('.').pop()?.toLowerCase();
   const type = ext === 'png' ? 'image/png' : 'image/jpeg';
-  // React Native's fetch accepts this {uri,name,type} shape in place of a real Blob.
-  form.append('image', { uri, name: filename, type } as unknown as Blob);
+  form.append('image', toUploadFilePart(uri, filename, type));
   return form;
 }
 

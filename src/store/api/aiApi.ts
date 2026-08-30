@@ -2,6 +2,7 @@ import { nuvoApi } from './nuvoApi';
 import { mockServer } from '@/mocks/mockServer';
 import { AiInsight, Goal, Subscription, ConversationSummary, ChatMessage } from '@/types';
 import { LunaAttachment } from '@/store/slices/lunaSlice';
+import { toUploadFilePart } from '@/utils/uploadFile';
 
 export interface ChatTurnResult {
   conversationId: string;
@@ -19,8 +20,7 @@ function toAudioFormData(uri: string, conversationId?: string): FormData {
   const filename = uri.split('/').pop() || 'voice.m4a';
   const ext = filename.split('.').pop()?.toLowerCase();
   const type = ext === 'wav' ? 'audio/wav' : ext === 'mp4' ? 'audio/mp4' : 'audio/m4a';
-  // React Native's fetch accepts this {uri,name,type} shape in place of a real Blob.
-  form.append('audio', { uri, name: filename, type } as unknown as Blob);
+  form.append('audio', toUploadFilePart(uri, filename, type));
   if (conversationId) form.append('conversationId', conversationId);
   return form;
 }
@@ -34,7 +34,7 @@ function toChatFormData(message: string, conversationId: string | undefined, att
   attachments.forEach((a, i) => {
     const filename = a.name || a.uri.split('/').pop() || `attachment_${i}`;
     const type = a.mimeType || (a.kind === 'image' ? 'image/jpeg' : 'application/pdf');
-    form.append('attachments', { uri: a.uri, name: filename, type } as unknown as Blob);
+    form.append('attachments', toUploadFilePart(a.uri, filename, type));
   });
   return form;
 }

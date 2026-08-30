@@ -3,14 +3,14 @@ import { mockServer } from '@/mocks/mockServer';
 import { Transaction } from '@/types';
 import { tierForUtilisation } from '@/theme/tokens';
 import { showToast } from '@/store/slices/toastSlice';
+import { toUploadFilePart } from '@/utils/uploadFile';
 
 function toVoiceFormData(uri: string): FormData {
   const form = new FormData();
   const filename = uri.split('/').pop() || 'voice.m4a';
   const ext = filename.split('.').pop()?.toLowerCase();
   const type = ext === 'wav' ? 'audio/wav' : ext === 'mp4' ? 'audio/mp4' : 'audio/m4a';
-  // React Native's fetch accepts this {uri,name,type} shape in place of a real Blob.
-  form.append('audio', { uri, name: filename, type } as unknown as Blob);
+  form.append('audio', toUploadFilePart(uri, filename, type));
   return form;
 }
 
@@ -59,8 +59,7 @@ function toFormData(uri: string, fieldName = 'image'): FormData {
   const filename = uri.split('/').pop() || `${fieldName}.jpg`;
   const ext = filename.split('.').pop()?.toLowerCase();
   const type = ext === 'png' ? 'image/png' : 'image/jpeg';
-  // React Native's fetch accepts this {uri,name,type} shape in place of a real Blob.
-  form.append(fieldName, { uri, name: filename, type } as unknown as Blob);
+  form.append(fieldName, toUploadFilePart(uri, filename, type));
   return form;
 }
 
