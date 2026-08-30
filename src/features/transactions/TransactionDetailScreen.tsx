@@ -240,7 +240,7 @@ export function TransactionDetailScreen() {
                       }}
                     >
                       {transaction.notes ??
-                        `NUVO's Isolation Forest model flagged this as unusual for ${catDef.label} — it deviates from your typical spend in this category.`}
+                        `NUVO's anomaly detection flagged this as unusual for ${catDef.label} — it deviates from your typical spend in this category.`}
                     </Text>
                   </View>
                 </View>

@@ -1,4 +1,6 @@
-import { View, Text } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Alert } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -10,10 +12,27 @@ import { completeOnboarding, setBiometricEnabled } from '@/store/slices/authSlic
 
 export function BiometricSetupScreen() {
   const dispatch = useAppDispatch();
+  const [checking, setChecking] = useState(false);
 
   const finish = (enabled: boolean) => {
     dispatch(setBiometricEnabled(enabled));
     dispatch(completeOnboarding());
+  };
+
+  const onEnable = async () => {
+    setChecking(true);
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert('Biometrics not set up', 'Set up Face ID or Touch ID for this device in your phone Settings, then try again.');
+        return;
+      }
+      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm to enable Biometric Lock' });
+      finish(result.success);
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -41,12 +60,12 @@ export function BiometricSetupScreen() {
               maxWidth: 300,
             }}
           >
-            Unlock the app and approve large transactions instantly — your biometric data never leaves this device.
+            Require Face ID or Touch ID to open the app — your biometric data never leaves this device.
           </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(320).springify()} style={{ width: '100%', gap: 12, marginTop: 8 }}>
-          <PrimaryButton label="Enable Face ID" onPress={() => finish(true)} />
+          <PrimaryButton label="Enable Face ID" loading={checking} onPress={onEnable} />
           <Text
             onPress={() => finish(false)}
             style={{ color: colors.inkMuted, fontFamily: fontFamily.semibold, fontSize: 14, textAlign: 'center', paddingVertical: 8 }}

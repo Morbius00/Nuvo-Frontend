@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, Pressable, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
-import { X, Shield, TrendingUp, Rocket } from 'lucide-react-native';
+import { X, Shield, TrendingUp, Rocket, Camera } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { colors, fontFamily } from '@/theme/tokens';
 import { RootStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/hooks';
-import { useUpdateProfileMutation } from '@/store/api/authApi';
+import { useUpdateProfileMutation, useUploadAvatarMutation } from '@/store/api/authApi';
 import { RiskTolerance } from '@/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
@@ -27,6 +28,7 @@ export function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAppSelector((s) => s.auth.user);
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
+  const [uploadAvatar, { isLoading: isUploadingAvatar }] = useUploadAvatarMutation();
 
   const [name, setName] = useState(user?.name ?? '');
   const [currency, setCurrency] = useState(user?.currency ?? 'INR');
@@ -40,6 +42,17 @@ export function ProfileScreen() {
       setRisk(user.aiProfile.riskTolerance);
     }
   }, [user]);
+
+  const onPickAvatar = async () => {
+    if (isUploadingAvatar) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (picked.canceled || !picked.assets?.length) return;
+
+    await uploadAvatar({ uri: picked.assets[0].uri }).unwrap().catch(() => undefined);
+  };
 
   const onSave = async () => {
     await updateProfile({
@@ -65,10 +78,33 @@ export function ProfileScreen() {
         </Animated.View>
 
         <Animated.View entering={ZoomIn.springify().delay(60)} style={{ alignItems: 'center' }}>
-          <Image
-            source={require('../../../assets/Profile-Image.png')}
-            style={{ width: 88, height: 88, borderRadius: 44 }}
-          />
+          <Pressable onPress={onPickAvatar} style={{ width: 88, height: 88 }}>
+            <Image
+              source={user?.avatarUrl ? { uri: user.avatarUrl } : require('../../../assets/Profile-Image.png')}
+              style={{ width: 88, height: 88, borderRadius: 44 }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                backgroundColor: colors.primary500,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 2,
+                borderColor: colors.bg,
+              }}
+            >
+              {isUploadingAvatar ? (
+                <ActivityIndicator size="small" color={colors.inkOnPrimary} />
+              ) : (
+                <Camera size={14} color={colors.inkOnPrimary} />
+              )}
+            </View>
+          </Pressable>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(100).springify()} style={{ gap: 14 }}>

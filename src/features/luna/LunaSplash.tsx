@@ -11,7 +11,6 @@ import Animated, {
   withTiming,
   interpolate,
   interpolateColor,
-  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import { Sparkles } from 'lucide-react-native';
@@ -73,15 +72,16 @@ export function LunaSplash({ onFinish }: LunaSplashProps) {
       setTaglineIndex((i) => (i + 1) % TAGLINES.length);
     }, TAGLINE_INTERVAL);
 
+    let finishTimer: ReturnType<typeof setTimeout> | undefined;
     const exitTimer = setTimeout(() => {
-      exitProgress.value = withTiming(1, { duration: EXIT_DURATION, easing: Easing.in(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(onFinish)();
-      });
+      exitProgress.value = withTiming(1, { duration: EXIT_DURATION, easing: Easing.in(Easing.cubic) });
+      finishTimer = setTimeout(onFinish, EXIT_DURATION);
     }, HOLD_DURATION);
 
     return () => {
       clearInterval(taglineTimer);
       clearTimeout(exitTimer);
+      clearTimeout(finishTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

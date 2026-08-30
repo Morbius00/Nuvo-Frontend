@@ -7,7 +7,6 @@ import Animated, {
   withSequence,
   withTiming,
   interpolate,
-  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import { colors } from '@/theme/tokens';
@@ -48,12 +47,15 @@ export function AppSplash({ ready, onFinish }: AppSplashProps) {
     exitStarted.current = true;
     const elapsed = Date.now() - mountedAt.current;
     const wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
+    let finishTimer: ReturnType<typeof setTimeout> | undefined;
     const timer = setTimeout(() => {
-      exitProgress.value = withTiming(1, { duration: EXIT_DURATION, easing: Easing.in(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(onFinish)();
-      });
+      exitProgress.value = withTiming(1, { duration: EXIT_DURATION, easing: Easing.in(Easing.cubic) });
+      finishTimer = setTimeout(onFinish, EXIT_DURATION);
     }, wait);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(finishTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 

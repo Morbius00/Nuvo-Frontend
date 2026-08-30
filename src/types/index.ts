@@ -20,6 +20,7 @@ export interface User {
     financialGoals: string[];
   };
   isPremium: boolean;
+  avatarUrl?: string;
   quietHours?: { start: string; end: string };
   oauthProvider?: 'google' | 'apple';
   createdAt: string;

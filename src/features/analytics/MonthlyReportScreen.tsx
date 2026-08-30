@@ -15,44 +15,21 @@ import { colors, fontFamily, liquidGlass } from '@/theme/tokens';
 import { formatCurrency, formatPercent } from '@/utils/format';
 import { getCategory } from '@/constants/categories';
 import { AnalyticsStackParamList } from '@/navigation/types';
-import { useGetAnalyticsSummaryQuery, useGetAnalyticsCategoriesQuery } from '@/store/api/analyticsApi';
+import { useGetAnalyticsCategoriesQuery, useGetMonthlyHistoryQuery } from '@/store/api/analyticsApi';
 
 type Nav = NativeStackNavigationProp<AnalyticsStackParamList>;
 
-// Deterministic month-over-month variance so the trailing 6-month view looks
-// populated & real, even though the mock backend only deeply models "this period".
-// Last entry (index 5) is always 1 -> the actual current-period figures.
-const INCOME_MULT = [0.9, 0.97, 1.04, 0.88, 1.06, 1];
-const EXPENSE_MULT = [0.82, 0.94, 1.08, 0.86, 0.95, 1];
-
-function monthLabels() {
-  const labels: string[] = [];
-  const now = new Date();
-  const fmt = new Intl.DateTimeFormat('en-IN', { month: 'short' });
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    labels.push(fmt.format(d));
-  }
-  return labels;
-}
-
 export function MonthlyReportScreen() {
   const navigation = useNavigation<Nav>();
-  const { data: summary, isLoading: summaryLoading } = useGetAnalyticsSummaryQuery();
+  const { data: monthlyHistory, isLoading: historyLoading } = useGetMonthlyHistoryQuery({ months: 6 });
   const { data: categories, isLoading: categoriesLoading } = useGetAnalyticsCategoriesQuery();
 
-  const barData: StackedBarDatum[] = useMemo(() => {
-    if (!summary) return [];
-    const labels = monthLabels();
-    return INCOME_MULT.map((incomeMult, i) => {
-      const income = summary.income * incomeMult;
-      const expense = summary.expense * EXPENSE_MULT[i];
-      const savings = Math.max(0, income - expense);
-      return { label: labels[i], income, expense, savings };
-    });
-  }, [summary]);
+  const barData: StackedBarDatum[] = useMemo(
+    () => (monthlyHistory ?? []).map((m) => ({ label: m.label, income: m.income, expense: m.expense, savings: Math.max(0, m.savings) })),
+    [monthlyHistory],
+  );
 
-  const isLoading = summaryLoading || categoriesLoading;
+  const isLoading = historyLoading || categoriesLoading;
 
   return (
     <Screen scroll>

@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { X, Mic } from 'lucide-react-native';
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, setAudioModeAsync } from 'expo-audio';
 import { CalendarIcon } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -49,7 +50,9 @@ export function AddTransactionScreen() {
   const [category, setCategory] = useState(type === 'income' ? 'income' : 'food_dining');
   const [merchant, setMerchant] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI');
-  const [voiceState, setVoiceState] = useState<'idle' | 'recording'>('idle');
+  const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder, 100);
   const [transactionDate, setTransactionDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -78,14 +81,36 @@ export function AddTransactionScreen() {
   };
 
   const handleVoiceCapture = async () => {
-    if (voiceState === 'recording') return;
-    setVoiceState('recording');
-    const [result] = await Promise.all([
-      createVoiceTransaction({ transcript: 'Spent 250 on food' })
-        .unwrap()
-        .catch(() => null),
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-    ]);
+    if (voiceState === 'processing') return;
+
+    if (voiceState !== 'recording') {
+      try {
+        await setAudioModeAsync({ allowsRecording: true });
+        await recorder.prepareToRecordAsync();
+        recorder.record();
+        setVoiceState('recording');
+      } catch {
+        setVoiceState('idle');
+      }
+      return;
+    }
+
+    let uri: string | null = null;
+    try {
+      await recorder.stop();
+      uri = recorder.uri;
+    } catch {
+      uri = null;
+    }
+    await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+
+    if (!uri || recorderState.durationMillis < 350) {
+      setVoiceState('idle');
+      return;
+    }
+
+    setVoiceState('processing');
+    const result = await createVoiceTransaction({ uri }).unwrap().catch(() => null);
     setVoiceState('idle');
     if (result) navigation.goBack();
   };
@@ -170,7 +195,7 @@ export function AddTransactionScreen() {
               variant={voiceState === 'recording' ? 'solid' : 'glass'}
               size={52}
               icon={<Mic size={20} color={voiceState === 'recording' ? colors.inkOnPrimary : colors.ink} />}
-              label={voiceState === 'recording' ? 'Listening…' : 'Voice'}
+              label={voiceState === 'recording' ? 'Listening…' : voiceState === 'processing' ? 'Processing…' : 'Voice'}
               onPress={handleVoiceCapture}
             />
           </Animated.View>

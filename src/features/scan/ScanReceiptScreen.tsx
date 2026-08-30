@@ -109,7 +109,7 @@ export function ScanReceiptScreen() {
                 maxWidth: 280,
               }}
             >
-              NUVO scans receipts on-device to auto-fill merchant, amount and category — grant camera access to continue.
+              NUVO scans receipts to auto-fill merchant, amount and category — grant camera access to continue.
             </Text>
           </Animated.View>
           <Animated.View entering={FadeInUp.delay(220).springify()} style={{ width: '100%', gap: 12, marginTop: 8 }}>
@@ -214,7 +214,7 @@ export function ScanReceiptScreen() {
           {[
             { icon: Zap, label: 'Instant scan' },
             { icon: Tag, label: 'Auto-category' },
-            { icon: FileText, label: 'On-device OCR' },
+            { icon: FileText, label: 'Auto-extract' },
           ].map(({ icon: Icon, label }) => (
             <View
               key={label}

@@ -48,15 +48,19 @@ export function VoiceModeOverlay({ conversationId, onConversationStarted, onExit
 
   const pulse = useSharedValue(1);
   useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1.12, { duration: 700, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 700, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      false,
-    );
-  }, [pulse]);
+    if (phase === 'listening') {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.12, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      pulse.value = withTiming(1, { duration: 150 });
+    }
+  }, [phase, pulse]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   const startRecording = async () => {
@@ -192,7 +196,7 @@ export function VoiceModeOverlay({ conversationId, onConversationStarted, onExit
               justifyContent: 'center',
               ...shadow.glow(colors.primary500),
             },
-            phase === 'listening' ? pulseStyle : undefined,
+            pulseStyle,
           ]}
         >
           {phase === 'listening' ? (

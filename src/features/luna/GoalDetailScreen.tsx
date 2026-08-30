@@ -1,21 +1,24 @@
+import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { ArrowLeft, Sparkles, TrendingUp, Check, Target } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, TrendingUp, Check, Target, PiggyBank } from 'lucide-react-native';
 import { CalendarIcon } from '@/components/ui/icons/ImageIcon';
 import { Screen } from '@/components/ui/Screen';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { IconButton } from '@/components/ui/IconButton';
 import { Badge } from '@/components/ui/Chip';
+import { Input } from '@/components/ui/Input';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RadialGauge } from '@/components/charts/RadialGauge';
 import { colors, fontFamily, liquidGlass } from '@/theme/tokens';
 import { formatCurrency, formatDayYear } from '@/utils/format';
 import { LunaStackParamList } from '@/navigation/types';
-import { useListGoalsQuery } from '@/store/api/aiApi';
+import { useListGoalsQuery, useContributeToGoalMutation } from '@/store/api/aiApi';
 import { GoalStatus } from '@/types';
 
 type Nav = NativeStackNavigationProp<LunaStackParamList>;
@@ -33,10 +36,20 @@ export function GoalDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<GoalDetailRoute>();
   const { data: goals, isLoading } = useListGoalsQuery();
+  const [contribute, { isLoading: isContributing }] = useContributeToGoalMutation();
   const goal = goals?.find((g) => g._id === route.params.id);
+
+  const [contribution, setContribution] = useState('');
 
   const pct = goal && goal.targetAmount > 0 ? Math.min(100, (goal.savedAmount / goal.targetAmount) * 100) : 0;
   const statusMeta = goal ? STATUS_META[goal.status] : undefined;
+
+  const onLogSavings = async () => {
+    const amount = Number(contribution);
+    if (!goal || !amount || amount <= 0) return;
+    await contribute({ id: goal._id, amount }).unwrap().catch(() => undefined);
+    setContribution('');
+  };
 
   return (
     <Screen scroll>
@@ -101,6 +114,30 @@ export function GoalDetailScreen() {
                     <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 14.5, marginTop: 3 }}>
                       {formatCurrency(Math.max(0, goal.targetAmount - goal.savedAmount))}
                     </Text>
+                  </View>
+                </View>
+              </GlassCard>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.delay(140).springify()}>
+              <GlassCard>
+                <View style={{ padding: 16, gap: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <PiggyBank size={16} color={colors.primary400} />
+                    <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 14 }}>Log savings</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+                    <View style={{ flex: 1 }}>
+                      <Input
+                        value={contribution}
+                        onChangeText={setContribution}
+                        keyboardType="number-pad"
+                        placeholder="Amount saved (₹)"
+                      />
+                    </View>
+                    <View style={{ width: 96 }}>
+                      <PrimaryButton label="Add" loading={isContributing} onPress={onLogSavings} />
+                    </View>
                   </View>
                 </View>
               </GlassCard>

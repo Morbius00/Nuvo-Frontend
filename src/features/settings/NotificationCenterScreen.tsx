@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, fontFamily, radii } from '@/theme/tokens';
 import { relativeDayLabel, formatTime } from '@/utils/format';
 import { RootStackParamList } from '@/navigation/types';
-import { NotificationPriority } from '@/types';
+import { NotificationPriority, AppNotification } from '@/types';
 import {
   useListNotificationsQuery,
   useMarkNotificationReadMutation,
@@ -34,6 +34,19 @@ export function NotificationCenterScreen() {
   const [markAllRead] = useMarkAllNotificationsReadMutation();
 
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
+
+  const onOpenNotification = (n: AppNotification) => {
+    if (!n.isRead) markRead(n._id);
+    if (n.type === 'predictive_stop_loss') {
+      const meta = n.metadata as { recommendedDailyTarget?: number; projectedBreachDate?: string } | undefined;
+      navigation.navigate('AlertDetail', {
+        tier: 'predictive',
+        forecast: meta?.recommendedDailyTarget !== undefined
+          ? { recommendedDailyTarget: meta.recommendedDailyTarget, projectedBreachDate: meta.projectedBreachDate }
+          : undefined,
+      });
+    }
+  };
 
   return (
     <Screen scroll>
@@ -78,7 +91,7 @@ export function NotificationCenterScreen() {
               <Animated.View key={n._id} entering={FadeInUp.delay(60 + idx * 30).springify()}>
                 <GlassCard
                   bordered={false}
-                  onPress={() => !n.isRead && markRead(n._id)}
+                  onPress={() => onOpenNotification(n)}
                   style={!n.isRead ? { backgroundColor: colors.glassFillStrong } : undefined}
                 >
                   <View style={{ flexDirection: 'row' }}>

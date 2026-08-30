@@ -10,6 +10,16 @@ interface AuthResponse {
   refreshToken: string;
 }
 
+function toImageFormData(uri: string): FormData {
+  const form = new FormData();
+  const filename = uri.split('/').pop() || 'image.jpg';
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const type = ext === 'png' ? 'image/png' : 'image/jpeg';
+  // React Native's fetch accepts this {uri,name,type} shape in place of a real Blob.
+  form.append('image', { uri, name: filename, type } as unknown as Blob);
+  return form;
+}
+
 export const authApi = nuvoApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<AuthResponse, { email: string; password: string; deviceId?: string; deviceName?: string }>({
@@ -141,6 +151,16 @@ export const authApi = nuvoApi.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+
+    uploadAvatar: builder.mutation<User, { uri: string }>({
+      query: ({ uri }) => ({
+        url: '/users/me/avatar',
+        method: 'POST',
+        body: toImageFormData(uri),
+        mock: () => mockServer.uploadAvatar(uri),
+      }),
+      invalidatesTags: ['User'],
+    }),
   }),
 });
 
@@ -155,4 +175,5 @@ export const {
   useResetPasswordMutation,
   useGetMeQuery,
   useUpdateProfileMutation,
+  useUploadAvatarMutation,
 } = authApi;

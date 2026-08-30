@@ -85,8 +85,8 @@ export function AnalyticsDashboardScreen() {
   const days = RANGE_DAYS[range];
   const rangeLabel = range.toLowerCase();
 
-  const { data: summary, isLoading: summaryLoading } = useGetAnalyticsSummaryQuery();
-  const { data: categories, isLoading: categoriesLoading } = useGetAnalyticsCategoriesQuery();
+  const { data: summary, isLoading: summaryLoading } = useGetAnalyticsSummaryQuery({ days });
+  const { data: categories, isLoading: categoriesLoading } = useGetAnalyticsCategoriesQuery({ days });
   const { data: trends, isLoading: trendsLoading } = useGetAnalyticsTrendsQuery({ days });
   const { data: txnData } = useListTransactionsQuery({ limit: 100 });
 

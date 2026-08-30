@@ -51,17 +51,25 @@ export function AlertDetailScreen() {
 
   const content: TierContent = useMemo(() => {
     if (params.tier === 'predictive') {
-      const dailyTarget = budget ? Math.max(0, Math.round(remaining / 5)) : 0;
+      const forecast = params.forecast;
+      const dailyTarget = forecast ? Math.round(forecast.recommendedDailyTarget) : budget ? Math.max(0, Math.round(remaining / 5)) : 0;
+      const breachWhen = forecast?.projectedBreachDate
+        ? new Date(forecast.projectedBreachDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+        : null;
       return {
         label: 'Predictive Alert',
         color: colors.tierOrange,
         Icon: TrendingDown,
         headline: 'LUNA forecasts a budget breach',
-        message: `At your current pace, LUNA forecasts you’ll breach your ${
-          budget ? formatCurrency(budget.totalBudget) : 'monthly'
-        } budget within 5 days.`,
+        message: breachWhen
+          ? `At your current pace, LUNA forecasts you’ll breach your ${
+              budget ? formatCurrency(budget.totalBudget) : 'monthly'
+            } budget around ${breachWhen}.`
+          : `At your current pace, LUNA forecasts you’ll breach your ${
+              budget ? formatCurrency(budget.totalBudget) : 'monthly'
+            } budget within 5 days.`,
         recoveryPlan: [
-          `Cap spending at ${budget ? formatCurrency(dailyTarget) : '—'}/day for the rest of the month.`,
+          `Cap spending at ${formatCurrency(dailyTarget)}/day for the rest of the month.`,
           'Hold off on impulse purchases for the next 3 days.',
           `Revisit your ${topCategories[0]} budget — it's driving most of the pace.`,
         ],
@@ -115,7 +123,7 @@ export function AlertDetailScreen() {
     };
 
     return { label: tier.label, color: tier.color, ...byTier[tier.key] };
-  }, [params.tier, budget, utilisation, remaining, topCategories]);
+  }, [params.tier, params.forecast, budget, utilisation, remaining, topCategories]);
 
   const goToBudget = () => {
     crossNav.toTab('HomeTab', 'Home');

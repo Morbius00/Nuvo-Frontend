@@ -112,7 +112,7 @@ export function AdvisorChatScreen() {
     if (pendingTurn?.status === 'sending') return;
     setPendingTurn({ kind: 'text', text, attachments, status: 'sending' });
     try {
-      const result = await sendLunaMessage({ conversationId: activeConversationId ?? undefined, message: text }).unwrap();
+      const result = await sendLunaMessage({ conversationId: activeConversationId ?? undefined, message: text, attachments }).unwrap();
       if (!activeConversationId) dispatch(setActiveConversation(result.conversationId));
       setPendingTurn(null);
     } catch (err) {
@@ -267,7 +267,7 @@ export function AdvisorChatScreen() {
 
   const handlePickDocument = async () => {
     attachSheetRef.current?.dismiss();
-    const result = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true });
+    const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], multiple: true });
     if (result.canceled || !result.assets?.length) return;
     const attachments: LunaAttachment[] = result.assets.map((a, i) => ({
       id: `doc_${Date.now()}_${i}`,

@@ -26,29 +26,62 @@ interface RawTrendPoint {
   priorPeriodAmount?: number;
 }
 
+export interface MonthlyHistoryPoint {
+  year: number;
+  month: number;
+  label: string;
+  income: number;
+  expense: number;
+  savings: number;
+}
+
+const DAY_MS = 86_400_000;
+
+/** Same UTC-day window trends already uses, shared so Week/Month/Year means the same thing everywhere. */
+function computeRangeDates(days: number): { startDate: string; endDate: string } {
+  const now = new Date();
+  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const startUtc = todayUtc - (days - 1) * DAY_MS;
+  return { startDate: new Date(startUtc).toISOString(), endDate: new Date(todayUtc).toISOString() };
+}
+
+function labelForDays(days: number): string {
+  if (days <= 7) return 'This week';
+  if (days <= 31) return formatMonthYear(new Date());
+  return 'This year';
+}
+
 export const analyticsApi = nuvoApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAnalyticsSummary: builder.query<AnalyticsSummary, void>({
-      query: () => ({ url: '/analytics/summary', mock: () => mockServer.analyticsSummary() }),
+    getAnalyticsSummary: builder.query<AnalyticsSummary, { days?: number } | void>({
+      query: (arg) => {
+        const { startDate, endDate } = computeRangeDates(arg?.days ?? 30);
+        return { url: '/analytics/summary', params: { startDate, endDate }, mock: () => mockServer.analyticsSummary() };
+      },
       // The real backend only computes a single expense-vs-prior-period delta
       // (deltaVsPriorPeriodPct); the mock already returns the richer FE shape as-is.
-      transformResponse: (raw: RawSummary & Partial<AnalyticsSummary>): AnalyticsSummary => ({
+      transformResponse: (raw: RawSummary & Partial<AnalyticsSummary>, _meta, arg): AnalyticsSummary => ({
         income: raw.income,
         expense: raw.expense,
         savings: raw.savings,
         incomeDelta: raw.incomeDelta,
         expenseDelta: raw.expenseDelta ?? raw.deltaVsPriorPeriodPct ?? 0,
         savingsDelta: raw.savingsDelta,
-        periodLabel: raw.periodLabel ?? formatMonthYear(new Date()),
+        periodLabel: raw.periodLabel ?? labelForDays(arg?.days ?? 30),
       }),
       providesTags: ['Budget'],
     }),
 
-    getAnalyticsCategories: builder.query<CategoryAnalytics[], void>({
+    getAnalyticsCategories: builder.query<CategoryAnalytics[], { days?: number } | void>({
       // Real backend doesn't return a `budgeted` figure per category — join it client-side
       // against the already-cached current budget. The mock already includes it directly.
-      queryFn: async (_arg, api, _extraOptions, baseQuery) => {
-        const result = await baseQuery({ url: '/analytics/categories', mock: () => mockServer.analyticsCategories() });
+      queryFn: async (arg, api, _extraOptions, baseQuery) => {
+        const { startDate, endDate } = computeRangeDates(arg?.days ?? 30);
+        const result = await baseQuery({
+          url: '/analytics/categories',
+          params: { startDate, endDate },
+          mock: () => mockServer.analyticsCategories(),
+        });
         if (result.error) return { error: result.error };
 
         const rows = result.data as RawCategory[];
@@ -134,6 +167,15 @@ export const analyticsApi = nuvoApi.injectEndpoints({
       query: () => ({ url: '/analytics/health-score', mock: () => mockServer.analyticsHealthScore() }),
       providesTags: ['HealthScore'],
     }),
+
+    getMonthlyHistory: builder.query<MonthlyHistoryPoint[], { months?: number } | void>({
+      query: (arg) => ({
+        url: '/analytics/monthly-history',
+        params: { months: arg?.months ?? 6 },
+        mock: () => mockServer.analyticsMonthlyHistory(arg?.months ?? 6),
+      }),
+      providesTags: ['Budget'],
+    }),
   }),
 });
 
@@ -142,4 +184,5 @@ export const {
   useGetAnalyticsCategoriesQuery,
   useGetAnalyticsTrendsQuery,
   useGetHealthScoreQuery,
+  useGetMonthlyHistoryQuery,
 } = analyticsApi;

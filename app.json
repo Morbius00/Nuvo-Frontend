@@ -8,7 +8,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0A0B0E",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nuvo.app"
@@ -66,11 +65,18 @@
           "cameraPermission": false
         }
       ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "NUVO uses Face ID to unlock the app when Biometric Lock is turned on."
+        }
+      ],
       "expo-font",
       "expo-status-bar",
       "expo-image",
       "expo-web-browser",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-asset"
     ]
   }
 }

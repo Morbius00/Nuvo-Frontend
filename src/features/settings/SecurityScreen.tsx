@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, Switch } from 'react-native';
+import { View, Text, Switch, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as LocalAuthentication from 'expo-local-authentication';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { X, Lock } from 'lucide-react-native';
 import { Screen } from '@/components/ui/Screen';
@@ -27,6 +28,31 @@ export function SecurityScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [checkingBiometrics, setCheckingBiometrics] = useState(false);
+
+  const onToggleBiometrics = async (value: boolean) => {
+    if (!value) {
+      dispatch(setBiometricEnabled(false));
+      return;
+    }
+
+    setCheckingBiometrics(true);
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert(
+          'Biometrics not set up',
+          'Set up Face ID or Touch ID for this device in your phone Settings, then try again.',
+        );
+        return;
+      }
+      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm to enable Biometric Lock' });
+      if (result.success) dispatch(setBiometricEnabled(true));
+    } finally {
+      setCheckingBiometrics(false);
+    }
+  };
 
   const onChangePassword = async () => {
     if (!currentPassword || !newPassword) return;
@@ -69,14 +95,13 @@ export function SecurityScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.ink, fontFamily: fontFamily.bold, fontSize: 15 }}>Face ID / Touch ID</Text>
                 <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12, marginTop: 2 }}>
-                  Unlock NUVO and approve large transactions
+                  Require Face ID or Touch ID to open NUVO
                 </Text>
               </View>
               <Switch
                 value={biometricEnabled}
-                onValueChange={(v) => {
-                  dispatch(setBiometricEnabled(v));
-                }}
+                disabled={checkingBiometrics}
+                onValueChange={onToggleBiometrics}
                 trackColor={{ false: colors.glassFillStrong, true: colors.primary500 }}
                 thumbColor="#FFFFFF"
                 ios_backgroundColor={colors.glassFillStrong}

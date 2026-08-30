@@ -16,10 +16,14 @@ import { colors, fontFamily, tierForUtilisation } from '@/theme/tokens';
 import { formatCurrency, formatPercent } from '@/utils/format';
 import { RootStackParamList } from '@/navigation/types';
 import { useGetCurrentBudgetQuery, useUpdateBudgetSettingsMutation, useUpdateStopLossMutation } from '@/store/api/budgetsApi';
+import { CATEGORIES } from '@/constants/categories';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'StopLossSettings'>;
 
 const ALERT_PRESETS = [50, 75, 90];
+
+/** Categories a spending budget actually applies to — income/transfer/other are excluded. */
+const BUDGETABLE_CATEGORIES = CATEGORIES.filter((c) => !['income', 'transfer', 'other'].includes(c.key));
 
 export function StopLossSettingsScreen() {
   const navigation = useNavigation<Nav>();
@@ -30,6 +34,7 @@ export function StopLossSettingsScreen() {
   const [monthlyBudget, setMonthlyBudget] = useState('');
   const [stopLossLimit, setStopLossLimit] = useState('');
   const [alertAt, setAlertAt] = useState('75');
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -37,6 +42,14 @@ export function StopLossSettingsScreen() {
       setMonthlyBudget(String(budget.totalBudget));
       setStopLossLimit(String(budget.stopLoss.limit));
       setAlertAt(String(budget.stopLoss.alertAt));
+      setCategoryBudgets(
+        Object.fromEntries(
+          BUDGETABLE_CATEGORIES.map((c) => [
+            c.key,
+            String(budget.categoryBreakdown.find((b) => b.category === c.key)?.budget ?? 0),
+          ]),
+        ),
+      );
     }
   }, [budget]);
 
@@ -44,8 +57,12 @@ export function StopLossSettingsScreen() {
   const tier = tierForUtilisation(utilisation);
 
   const onSave = async () => {
+    const categoryBreakdown = BUDGETABLE_CATEGORIES.map((c) => ({
+      category: c.key,
+      budget: Number(categoryBudgets[c.key]) || 0,
+    }));
     await Promise.all([
-      updateBudgetSettings({ monthlyBudget: Number(monthlyBudget) || 0 }).unwrap().catch(() => undefined),
+      updateBudgetSettings({ monthlyBudget: Number(monthlyBudget) || 0, categoryBreakdown }).unwrap().catch(() => undefined),
       updateStopLoss({ limit: Number(stopLossLimit) || 0, alertAt: Number(alertAt) || 75 }).unwrap().catch(() => undefined),
     ]);
     setSaved(true);
@@ -111,6 +128,30 @@ export function StopLossSettingsScreen() {
           <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 18 }}>
             NUVO flags every transaction once you cross this hard limit for the month.
           </Text>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(130).springify()} style={{ gap: 12 }}>
+          <Text style={{ color: colors.inkSecondary, fontFamily: fontFamily.semibold, fontSize: 13 }}>
+            Category Budgets
+          </Text>
+          <Text style={{ color: colors.inkMuted, fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 18, marginTop: -6 }}>
+            Set a monthly limit per category to see progress bars on your Analytics screens.
+          </Text>
+          <View style={{ gap: 10 }}>
+            {BUDGETABLE_CATEGORIES.map((c) => (
+              <View key={c.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ flex: 1, color: colors.ink, fontFamily: fontFamily.semibold, fontSize: 13.5 }}>{c.label}</Text>
+                <View style={{ width: 130 }}>
+                  <Input
+                    value={categoryBudgets[c.key] ?? ''}
+                    onChangeText={(v) => setCategoryBudgets((prev) => ({ ...prev, [c.key]: v }))}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(150).springify()} style={{ gap: 12 }}>

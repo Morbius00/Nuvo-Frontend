@@ -4,6 +4,16 @@ import { Transaction } from '@/types';
 import { tierForUtilisation } from '@/theme/tokens';
 import { showToast } from '@/store/slices/toastSlice';
 
+function toVoiceFormData(uri: string): FormData {
+  const form = new FormData();
+  const filename = uri.split('/').pop() || 'voice.m4a';
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const type = ext === 'wav' ? 'audio/wav' : ext === 'mp4' ? 'audio/mp4' : 'audio/m4a';
+  // React Native's fetch accepts this {uri,name,type} shape in place of a real Blob.
+  form.append('audio', { uri, name: filename, type } as unknown as Blob);
+  return form;
+}
+
 interface ListTransactionsArgs {
   page?: number;
   limit?: number;
@@ -138,12 +148,12 @@ export const transactionsApi = nuvoApi.injectEndpoints({
       query: (jobId) => ({ url: `/transactions/scan/${jobId}`, mock: () => mockServer.getScanJobStatus(jobId) }),
     }),
 
-    createVoiceTransaction: builder.mutation<TransactionWriteResponse, { transcript: string }>({
-      query: (body) => ({
+    createVoiceTransaction: builder.mutation<TransactionWriteResponse, { uri: string }>({
+      query: ({ uri }) => ({
         url: '/transactions/voice',
         method: 'POST',
-        body,
-        mock: () => mockServer.createVoiceTransaction(body.transcript),
+        body: toVoiceFormData(uri),
+        mock: () => mockServer.createVoiceTransaction(uri),
       }),
       invalidatesTags: [{ type: 'Transaction', id: 'LIST' }, 'Budget'],
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {

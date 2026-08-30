@@ -1,6 +1,11 @@
 import { nuvoApi } from './nuvoApi';
 import { mockServer } from '@/mocks/mockServer';
-import { Budget } from '@/types';
+import { Budget, CategoryBreakdown } from '@/types';
+
+export interface UpdateBudgetSettingsInput {
+  monthlyBudget?: number;
+  categoryBreakdown?: Pick<CategoryBreakdown, 'category' | 'budget' | 'stopLossLimit'>[];
+}
 
 export const budgetsApi = nuvoApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -9,7 +14,7 @@ export const budgetsApi = nuvoApi.injectEndpoints({
       providesTags: ['Budget'],
     }),
 
-    updateBudgetSettings: builder.mutation<Budget, { monthlyBudget?: number }>({
+    updateBudgetSettings: builder.mutation<Budget, UpdateBudgetSettingsInput>({
       query: (body) => ({ url: '/budgets/current', method: 'PATCH', body, mock: () => mockServer.updateBudgetSettings(body) }),
       invalidatesTags: ['Budget'],
     }),

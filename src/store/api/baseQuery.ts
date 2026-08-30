@@ -66,6 +66,9 @@ export const nuvoBaseQuery: BaseQueryFn<NuvoQueryArgs, unknown, NuvoQueryError> 
     }
     return { data: json?.data ?? json };
   } catch (err) {
+    // Surfaced only as a generic toast to the user — log the real cause here so it's
+    // visible in the Metro/device console when diagnosing a "couldn't reach the server" report.
+    console.error(`[nuvoBaseQuery] ${args.method ?? 'GET'} ${args.url} failed:`, err);
     return { error: { message: err instanceof Error ? err.message : 'Network request failed' } };
   }
 };

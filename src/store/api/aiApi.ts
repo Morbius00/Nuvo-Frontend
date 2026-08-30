@@ -1,6 +1,7 @@
 import { nuvoApi } from './nuvoApi';
 import { mockServer } from '@/mocks/mockServer';
 import { AiInsight, Goal, Subscription, ConversationSummary, ChatMessage } from '@/types';
+import { LunaAttachment } from '@/store/slices/lunaSlice';
 
 export interface ChatTurnResult {
   conversationId: string;
@@ -24,6 +25,20 @@ function toAudioFormData(uri: string, conversationId?: string): FormData {
   return form;
 }
 
+/** Only image/PDF attachments are actually understood by the backend's vision-capable model
+ *  (see AttachSheet / DocumentPicker's `type` filter, which restricts picking to these upfront). */
+function toChatFormData(message: string, conversationId: string | undefined, attachments: LunaAttachment[]): FormData {
+  const form = new FormData();
+  form.append('message', message);
+  if (conversationId) form.append('conversationId', conversationId);
+  attachments.forEach((a, i) => {
+    const filename = a.name || a.uri.split('/').pop() || `attachment_${i}`;
+    const type = a.mimeType || (a.kind === 'image' ? 'image/jpeg' : 'application/pdf');
+    form.append('attachments', { uri: a.uri, name: filename, type } as unknown as Blob);
+  });
+  return form;
+}
+
 export const aiApi = nuvoApi.injectEndpoints({
   endpoints: (builder) => ({
     getLunaConversations: builder.query<ConversationSummary[], void>({
@@ -42,12 +57,12 @@ export const aiApi = nuvoApi.injectEndpoints({
       providesTags: (_result, _error, conversationId) => [{ type: 'Conversation', id: `messages-${conversationId}` }],
     }),
 
-    sendLunaMessage: builder.mutation<ChatTurnResult, { conversationId?: string; message: string }>({
-      query: (body) => ({
+    sendLunaMessage: builder.mutation<ChatTurnResult, { conversationId?: string; message: string; attachments?: LunaAttachment[] }>({
+      query: ({ conversationId, message, attachments }) => ({
         url: '/ai/luna/chat',
         method: 'POST',
-        body,
-        mock: () => mockServer.lunaChat(body),
+        body: attachments?.length ? toChatFormData(message, conversationId, attachments) : { conversationId, message },
+        mock: () => mockServer.lunaChat({ conversationId, message }),
       }),
       invalidatesTags: (result) =>
         result
@@ -119,6 +134,26 @@ export const aiApi = nuvoApi.injectEndpoints({
       providesTags: ['Goal'],
     }),
 
+    updateGoal: builder.mutation<Goal, { id: string } & Partial<Goal>>({
+      query: ({ id, ...body }) => ({
+        url: `/ai/goals/${id}`,
+        method: 'PATCH',
+        body,
+        mock: () => mockServer.updateGoal(id, body),
+      }),
+      invalidatesTags: ['Goal'],
+    }),
+
+    contributeToGoal: builder.mutation<Goal, { id: string; amount: number }>({
+      query: ({ id, amount }) => ({
+        url: `/ai/goals/${id}/contributions`,
+        method: 'POST',
+        body: { amount },
+        mock: () => mockServer.contributeToGoal(id, amount),
+      }),
+      invalidatesTags: ['Goal'],
+    }),
+
     getSubscriptionAudit: builder.query<{ subscriptions: Subscription[]; monthlyTotal: number; annualTotal: number }, void>({
       query: () => ({ url: '/ai/subscriptions', mock: () => mockServer.subscriptionAudit() }),
       // Real backend only returns { subscriptions, annualTotal } — derive monthlyTotal the
@@ -146,5 +181,7 @@ export const {
   useGetLunaOpportunitiesQuery,
   useCreateGoalMutation,
   useListGoalsQuery,
+  useUpdateGoalMutation,
+  useContributeToGoalMutation,
   useGetSubscriptionAuditQuery,
 } = aiApi;

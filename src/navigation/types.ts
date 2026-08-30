@@ -54,7 +54,10 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   ScanReceipt: undefined;
   TransactionConfirm: { transactionId: string; jobId?: string };
-  AlertDetail: { tier: 'yellow' | 'orange' | 'red' | 'hard' | 'predictive' };
+  AlertDetail: {
+    tier: 'yellow' | 'orange' | 'red' | 'hard' | 'predictive';
+    forecast?: { recommendedDailyTarget: number; projectedBreachDate?: string };
+  };
   Notifications: undefined;
   Settings: undefined;
   Profile: undefined;

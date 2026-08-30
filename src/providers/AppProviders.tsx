@@ -16,6 +16,7 @@ import {
 import { store, persistor } from '@/store';
 import { AppSplash } from '@/components/ui/AppSplash';
 import { ToastHost } from '@/components/ui/ToastHost';
+import { AppLockGate } from './AppLockGate';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -49,7 +50,9 @@ export function AppProviders({ children }: AppProvidersProps) {
       <SafeAreaProvider>
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor} onBeforeLift={() => setPersistReady(true)}>
-            <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+            <BottomSheetModalProvider>
+              <AppLockGate active={!showAppSplash}>{children}</AppLockGate>
+            </BottomSheetModalProvider>
             <ToastHost />
           </PersistGate>
         </Provider>

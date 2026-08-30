@@ -85,7 +85,7 @@ export function HomeScreen() {
             }}
           >
             <Image
-              source={require('../../../assets/Profile-Image.png')}
+              source={user?.avatarUrl ? { uri: user.avatarUrl } : require('../../../assets/Profile-Image.png')}
               style={{ width: 44, height: 44, borderRadius: 14 }}
             />
           </View>
@@ -227,7 +227,12 @@ export function HomeScreen() {
                 tier.key === 'yellow'
                   ? 'You’re halfway through your monthly budget.'
                   : tier.key === 'orange'
-                    ? 'LUNA has 3 categories you can trim to stay on track.'
+                    ? (() => {
+                        const trimmable = Math.min(3, budget.categoryBreakdown.filter((c) => c.spent > 0).length);
+                        return trimmable > 0
+                          ? `LUNA has ${trimmable} categor${trimmable === 1 ? 'y' : 'ies'} you can trim to stay on track.`
+                          : 'LUNA has ideas to help you trim spending and stay on track.';
+                      })()
                     : tier.key === 'red'
                       ? 'You’re close to your limit — see LUNA’s recovery plan.'
                       : 'Your hard stop-loss limit has been reached.'

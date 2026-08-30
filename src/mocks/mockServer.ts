@@ -97,6 +97,12 @@ class MockServer {
     return clone(this.user);
   }
 
+  async uploadAvatar(uri: string) {
+    // No real storage backend in mock mode — just point the user doc at the local picked file.
+    this.user = { ...this.user, avatarUrl: uri };
+    return clone(this.user);
+  }
+
   // ---------- Transactions ----------
   async listTransactions(query: {
     page?: number;
@@ -243,7 +249,10 @@ class MockServer {
     return { state: 'completed' };
   }
 
-  async createVoiceTransaction(transcript: string): Promise<{ transaction: Transaction }> {
+  async createVoiceTransaction(_uri: string): Promise<{ transaction: Transaction }> {
+    // Mock mode has no server-side speech-to-text — the real backend transcribes the actual
+    // recording via Gemini; here we just simulate a plausible transcript for the demo fixture.
+    const transcript = 'Spent 250 on food';
     const amountMatch = transcript.match(/(\d+(?:[.,]\d+)?)/);
     const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '')) : 250;
     const lower = transcript.toLowerCase();
@@ -310,8 +319,11 @@ class MockServer {
     };
   }
 
-  async updateBudgetSettings(patch: { monthlyBudget?: number }) {
+  async updateBudgetSettings(patch: { monthlyBudget?: number; categoryBreakdown?: { category: string; budget: number }[] }) {
     if (patch.monthlyBudget !== undefined) this.budget.totalBudget = patch.monthlyBudget;
+    if (patch.categoryBreakdown) {
+      for (const c of patch.categoryBreakdown) this.budget.categoryBudgets[c.category] = c.budget;
+    }
     return this.getCurrentBudget();
   }
 
@@ -396,6 +408,30 @@ class MockServer {
 
   async analyticsHealthScore() {
     return { current: clone(this.healthScoreHistory[this.healthScoreHistory.length - 1]), history: clone(this.healthScoreHistory) };
+  }
+
+  async analyticsMonthlyHistory(months = 6) {
+    const now = new Date();
+    const labelFmt = new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'UTC' });
+    const points: { year: number; month: number; label: string; income: number; expense: number; savings: number }[] = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const year = d.getUTCFullYear();
+      const month = d.getUTCMonth();
+      const { income, expense } = this.transactions.reduce(
+        (acc, t) => {
+          if (t.status !== 'confirmed') return acc;
+          const ta = new Date(t.transactionAt);
+          if (ta.getUTCFullYear() !== year || ta.getUTCMonth() !== month) return acc;
+          if (t.type === 'income') acc.income += t.amount;
+          else if (t.type === 'expense') acc.expense += t.amount;
+          return acc;
+        },
+        { income: 0, expense: 0 },
+      );
+      points.push({ year, month: month + 1, label: labelFmt.format(d), income, expense, savings: income - expense });
+    }
+    return points;
   }
 
   // ---------- LUNA / AI ----------
@@ -609,6 +645,21 @@ class MockServer {
 
   async listGoals() {
     return clone(this.goals);
+  }
+
+  async updateGoal(id: string, updates: Partial<Goal>): Promise<Goal> {
+    const goal = this.goals.find((g) => g._id === id);
+    if (!goal) throw new Error('Goal not found');
+    Object.assign(goal, updates);
+    return clone(goal);
+  }
+
+  async contributeToGoal(id: string, amount: number): Promise<Goal> {
+    const goal = this.goals.find((g) => g._id === id);
+    if (!goal) throw new Error('Goal not found');
+    goal.savedAmount += amount;
+    if (goal.savedAmount >= goal.targetAmount) goal.status = 'completed';
+    return clone(goal);
   }
 
   async subscriptionAudit() {
